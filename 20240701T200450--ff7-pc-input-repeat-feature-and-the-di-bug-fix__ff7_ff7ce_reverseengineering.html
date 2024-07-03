@@ -1,0 +1,2002 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2024-07-03 Wed 20:45 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>FF7 PC Input Repeat Feature, and the DI bug fix</title>
+<meta name="generator" content="Org Mode" />
+<link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/css/htmlize.css"/>
+<link rel="stylesheet" type="text/css" href="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/css/readtheorg.css"/>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/lib/js/jquery.stickytableheaders.min.js"></script>
+<script type="text/javascript" src="https://fniessen.github.io/org-html-themes/src/readtheorg_theme/js/readtheorg.js"></script>
+<style> #content{max-width:1800px;}</style>
+<style> li{max-width:800px;}</style>
+<style> p{max-width:800px;}</style>
+</head>
+<body>
+<div id="content" class="content">
+<h1 class="title">FF7 PC Input Repeat Feature, and the DI bug fix</h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#org3ae2af2">Intro</a></li>
+<li><a href="#org7f5298d">Back links</a></li>
+<li><a href="#org83978cd">Inputs, and their values</a></li>
+<li><a href="#org50b607c">Definitions and Names</a></li>
+<li><a href="#org63276b0">Important Addresses</a>
+<ul>
+<li><a href="#org7447c8c">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a></li>
+<li><a href="#org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</a></li>
+<li><a href="#orgee24c85">009A85C8 - aka C8 - Input Repeat Delay</a></li>
+<li><a href="#orgccf232b">009A85E4 - aka E4 - Input repeat rate</a></li>
+<li><a href="#org2990386">009A8714 - aka 14 - Current input repeat wait</a></li>
+<li><a href="#org2c8d7da">009A8730 - aka 30 - Timer</a></li>
+<li><a href="#org0ab8e92">009A872C - aka 2C - Repeat gate/flag</a></li>
+<li><a href="#org24861da">009A8734 - aka 34 - Repeat is active flag</a></li>
+</ul>
+</li>
+<li><a href="#org1ffa1b9">Functions</a>
+<ul>
+<li><a href="#org1e02cb4">0041B108 - aka 108 - input timer and flag setting function</a></li>
+<li><a href="#org394b874">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a></li>
+<li><a href="#org1836dad">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a></li>
+<li><a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a></li>
+</ul>
+</li>
+<li><a href="#org8b9f387">wrapper functions for 'check for repeatable key' (099)</a>
+<ul>
+<li><a href="#orgbe16060">006F53F1 - aka 3F1 - simple wrapper</a></li>
+<li><a href="#orgaf5d847">006F53B2 - aka 3B2 - used for UDLR</a></li>
+<li><a href="#org61c5590">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a></li>
+<li><a href="#orge0ef7a3">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a></li>
+<li><a href="#orgdd24afb">007212FB - aka 2FB - first menu main(-ish)</a>
+<ul>
+<li><a href="#org64cf45e">What we can surmise</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#orgf6a5a40">Brass tacks</a></li>
+<li><a href="#orgb12faf4">The unreachable condition (condition 1 of 099)</a>
+<ul>
+<li><a href="#orge04bd02">Why we don't get there</a></li>
+<li><a href="#org6591a38">the zeroing function</a></li>
+<li><a href="#org2ac08ea">all instructions that reference E4 explicitly</a></li>
+<li><a href="#org62cc228">Whats in there, and why the fix works.</a>
+<ul>
+<li><a href="#org797241c">2C - repeat gate</a></li>
+<li><a href="#orgf0d4c8b">cmp dword ptr [009A85E4],00 - Condition 1's unyielding gatekeeper</a></li>
+<li><a href="#org74858ae">Now lets look at condition 1.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org05ad92b">The fix in place.</a></li>
+<li><a href="#org2543c4f">I mentioned an exceptions #2 and never clarified</a></li>
+<li><a href="#org64395c9">Detecting Cheaters in speed running</a></li>
+</ul>
+</div>
+</div>
+<p>
+This is currently a work in progress, expect edits and refinements.
+Currently a first draft, in need of simplifying as much as possible,
+perhaps some rearranging and certainly cutting down on repetition.
+</p>
+
+<p>
+TODO
+</p>
+<ul class="org-ul">
+<li>Steps to reproduce bug reliably, and understand it behaviour in game.</li>
+</ul>
+
+<p>
+<b>Just putting this here for no apparent reason.</b>
+</p>
+<video width="400" autoplay loop muted>
+  <source src="charlie-day.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+<p>
+<br />
+"Bugs? Not in My beautiful code"<br />
+"This is prooobably fixed. Someone else will test it anyway."<br />
+"Wont fix, wont fix, wont fix &#x2013; gosh, this is easy!"<br />
+"@~{#^ it, ship it!"<br />
+Claptrap - Borderlands: The Pre-Sequel<br />
+<a href="https://www.youtube.com/watch?v=NbzB7ZX7_ss">https://www.youtube.com/watch?v=NbzB7ZX7_ss</a><br />
+(just having fun referencing claptrap, I expect this was a managment
+problem more than a programmer problem. It did not take much to
+fix/finish input repeat)
+</p>
+
+<div id="outline-container-org3ae2af2" class="outline-2">
+<h2 id="org3ae2af2">Intro</h2>
+<div class="outline-text-2" id="text-org3ae2af2">
+<p>
+The bugfix can be found here:<br />
+<a href="https://github.com/potus-barret/ff7-pc-di-fix/releases/latest/">https://github.com/potus-barret/ff7-pc-di-fix/releases/latest/</a>
+</p>
+
+<p>
+Any and all questions/feedback is welcomed and appreciated.
+</p>
+
+<p>
+Corrections, clarifications and additions will be made thanks to them
+so please do fire away. If something isnt clear its likely a failure
+on my part.
+</p>
+
+<p>
+This was put together with bad notes, 4+ month old memory and re
+reversing the relevant parts. If I seem vague or uncertain at points,
+it is because of bad notes, not wanting to 100% trust my memory and not
+having the time to re read a metric s tone of assembly :D. Though I
+should patch up uncertainties as time allows.
+</p>
+
+<p>
+Because the scope of knowledge of the games code and computer science
+concepts varies wildly from individual to individual in the speed
+running community and modding/developing community, (the two audiences
+I expect to be reading this,) I'll be doing my best to write in a way
+that caters to people with low and high levels of knowledge at the
+same time. I am not an expert but believe I can do decent job at
+that. Sorry if it gets annoying.
+</p>
+
+<p>
+This explanation of the input repeat feature will cover:
+</p>
+
+<ul class="org-ul">
+<li>Where it keeps track of timings and flags with regards to this input
+repeat feature.</li>
+
+<li>What can and cant repeat in each 'menu context' that is covered and
+what a 'repeatable keys list' is.</li>
+
+<li>When, where and how double input happens.</li>
+
+<li>Where the fix is and why it's there.</li>
+</ul>
+
+<p>
+Effectively an if else statement, (read as "a fork in the road",)
+where both paths "go to the same place", and the condition being
+checked, (read as "which path to take",) always being true (read as
+"only one path is ever taken"). I think I did a good job there
+explaining that the piece of code in question is nonsense, whether
+your are a layman or familiar with coding concepts. And the problems
+with that code dont end there.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org7f5298d" class="outline-2">
+<h2 id="org7f5298d">Back links</h2>
+<div class="outline-text-2" id="text-org7f5298d">
+<p>
+Throughout this tangled mess of red string on a wall you will find a
+collection of reference and/or back links at the top/bottom of some
+sections. It is to make navigation and reading easier. There is a lot
+covered and it will be hard to follow without being able to look back
+at sections and quickly return to where you left from.
+</p>
+
+<p>
+'Reference links' will lead you back to sections that were already
+covered and are referenced in the current section.
+</p>
+
+<p>
+'Back links' will lead you back to sections that reference the current
+section.
+</p>
+
+<p>
+So before clicking a reference link, remember the name of the current
+section. And when you are done click the corresponding back link to
+return.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org83978cd" class="outline-2">
+<h2 id="org83978cd">Inputs, and their values</h2>
+<div class="outline-text-2" id="text-org83978cd">
+<p>
+Here we have the hex, binary and decimal representations of the games
+values for buttons in the VARS variables and repeatable keys lists.
+</p>
+
+<p>
+The binary being the most illuminating, showing how one variable can
+hold and be checked for multiple inputs. These values take up no more
+than 2 bytes and match up with how the PSX version of the game does
+it.
+</p>
+
+<p>
+I will be using the PSX's names for these buttons. This is the game
+logic's representation of these buttons and on PC it does not matter
+what keyboard keys, game pad buttons or dance mats these buttons are
+bound to. This is what the game will see them as by the time it gets
+to any of the code we are covering here.
+</p>
+
+<pre class="example">
+| PC     | PSX      |  Hex |           Binary | Decimal |
+|--------+----------+------+------------------+---------|
+| Camera | L2       | 0001 | 0000000000000001 |       1 |
+| Target | R2       | 0002 | 0000000000000010 |       2 |
+| PgUp   | L1       | 0004 | 0000000000000100 |       4 |
+| PgDn   | R1       | 0008 | 0000000000001000 |       8 |
+|        |          |      |                  |         |
+| Menu   | Triangle | 0010 | 0000000000010000 |      16 |
+| OK     | Circle   | 0020 | 0000000000100000 |      32 |
+| Cancel | X        | 0040 | 0000000001000000 |      64 |
+| Switch | Square   | 0080 | 0000000010000000 |     128 |
+|        |          |      |                  |         |
+| Assist | Select   | 0100 | 0000000100000000 |     256 |
+| Start  | Start    | 0800 | 0000100000000000 |    2048 |
+|        |          |      |                  |         |
+| Up     | Up       | 1000 | 0001000000000000 |    4096 |
+| Right  | Right    | 2000 | 0010000000000000 |    8192 |
+| Down   | Down     | 4000 | 0100000000000000 |   16384 |
+| Left   | Left     | 8000 | 1000000000000000 |   32768 |
+</pre>
+
+<p>
+The values are stored in 2 bytes (16 bits), leaving 2 unused bits
+between select and start. This doesn't mean there are some secret
+hidden buttons, it just means they had room to spare.
+</p>
+
+<p>
+So using the table above we can see that variables of 2 bytes in
+length can denote the state of every button in the game, pressed = 1,
+not pressed = 0. We need only watch for the buttons corresponding bit
+from the binary column in the above table.
+</p>
+
+<p>
+For example the corresponding bit for L2 is the 1 (or 0 if the button
+is not pressed) the furthest to the right.
+</p>
+
+<pre class="example">
+0000000000000001
+               ^
+</pre>
+
+<p>
+While the corresponding bit for R2 is one space to the left of that.
+</p>
+
+<pre class="example">
+0000000000000010
+              ^
+</pre>
+<p>
+And so on and so forth for the rest of the buttons.
+</p>
+
+<p>
+Because there is no bits overlapping, 2 bytes can hold the state of
+every button in the game. Like so:
+</p>
+
+<p>
+Psx's reset combination would look like this
+</p>
+<pre class="example">
+0000100100001111 (L2 + R2 + L1 + R1 + Select + Start)
+</pre>
+
+<p>
+Or a simple Circle + Down
+</p>
+<pre class="example">
+0100000000100000
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org50b607c" class="outline-2">
+<h2 id="org50b607c">Definitions and Names</h2>
+<div class="outline-text-2" id="text-org50b607c">
+<p>
+I am going to lay out terms I have used or come up with while trying
+to explain FF7's Input Repeat Feature and the Double Input glitch.
+</p>
+
+<p>
+Fair warning, I tend to use keys and inputs interchangeably. I should
+fix that at some point.
+</p>
+
+<p>
+<b>UDLR</b>:<br />
+up, down, left, right.
+</p>
+
+<p>
+<b>Input Repeat Feature</b>, <b>IRF</b>:<br />
+A feature in FF7 PC and PSX that facilitates what many call auto fire,
+rapid fire etc. It is experienced when in menus certain buttons are
+held down and a moment later the game acts as though that button is
+being pressed rapidly.
+</p>
+
+<p>
+In each menu or submenu only certain keys/inputs can repeat. For
+example Circle cannot repeat in the top level of Triangle/Main
+menu. But can in battle menu. R1 and L1 cannot repeat in top level of
+Triangle/Main menu. But can in many menus with lists, like the item
+selection sub menu under the Triangle/Main menu &gt; Item Menu.
+</p>
+
+<p>
+<b>Repeatable Keys List, RKL</b>:<br />
+When a menu parses inputs it iterates over a hard coded list of keys
+that can repeat in that menu, and checks whether each of those buttons
+are in a down state. If they are and the repeat gate/flag is set. The
+found keys are played in game. (with some exceptions #1)
+</p>
+
+<p>
+<b>Double Input glitch</b>, <b>DI glitch</b>:<br />
+A glitch that happens in FF7, on PC, in menus, when:
+</p>
+
+<ul class="org-ul">
+<li>one or more buttons that can repeat in the current menu are in a
+down/pressed state (not a up/released state) (<b>DI Initial Input</b>)</li>
+<li>any other button/buttons is/are put into a down/pressed state (<b>DI
+Trigger Input</b>) (yes more than one button can get pressed in the same
+frame)</li>
+</ul>
+
+<p>
+Causing all <b>Initial Inputs</b> to be processed by the game at the moment
+the <b>Trigger Input</b> is pressed. Most commonly perceived when two buttons
+are pressed in quick succession, giving the user the experience of a
+"doubled input".
+</p>
+</div>
+</div>
+
+<div id="outline-container-org63276b0" class="outline-2">
+<h2 id="org63276b0">Important Addresses</h2>
+<div class="outline-text-2" id="text-org63276b0">
+</div>
+<div id="outline-container-org7447c8c" class="outline-3">
+<h3 id="org7447c8c">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</h3>
+<div class="outline-text-3" id="text-org7447c8c">
+<p>
+An address that holds recent keys, keys pressed this frame.
+</p>
+
+<p>
+Back Links:<br />
+<a href="#org1e02cb4">0041B108 - aka 108 - input timer and flag setting function</a><br />
+<a href="#org62cc228">Whats in there, and why the fix works.</a><br />
+<a href="#orgf6a5a40">Brass tacks</a><br />
+<a href="#orgdd24afb">007212FB - aka 2FB - first menu main(-ish)</a><br />
+<a href="#org1836dad">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org58cb8c0" class="outline-3">
+<h3 id="org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</h3>
+<div class="outline-text-3" id="text-org58cb8c0">
+<p>
+An address that holds all currently held keys.
+</p>
+
+<p>
+Back Links:<br />
+<a href="#org1e02cb4">0041B108 - aka 108 - input timer and flag setting function</a><br />
+<a href="#org62cc228">Whats in there, and why the fix works.</a><br />
+<a href="#orgf6a5a40">Brass tacks</a><br />
+<a href="#orgaf5d847">006F53B2 - aka 3B2 - used for UDLR</a><br />
+<a href="#orgbe16060">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a><br />
+<a href="#org394b874">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgee24c85" class="outline-3">
+<h3 id="orgee24c85">009A85C8 - aka C8 - Input Repeat Delay</h3>
+<div class="outline-text-3" id="text-orgee24c85">
+<p>
+An address that holds the input repeat delay value. 200. The time in
+ms until repeat/auto-fire begins.
+</p>
+
+<p>
+Back Links:<br />
+<a href="#orge04bd02">Why we don't get there</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgccf232b" class="outline-3">
+<h3 id="orgccf232b">009A85E4 - aka E4 - Input repeat rate</h3>
+<div class="outline-text-3" id="text-orgccf232b">
+<p>
+An address that holds the input repeat rate value. 50. The time in
+ms ticks/fires/executions of repeat/auto-fire.
+</p>
+
+<p>
+Back Links:<br />
+<a href="#orge04bd02">Why we don't get there</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org2990386" class="outline-3">
+<h3 id="org2990386">009A8714 - aka 14 - Current input repeat wait</h3>
+<div class="outline-text-3" id="text-org2990386">
+<p>
+An address that holds the 'current wait' in ms for repeat. It holds
+either 200 or 50 depending on if a button was recently pressed or is
+still held after 200ms. The value stored in input repeat delay or
+input repeat rate is put here depending on those circumstances.
+</p>
+
+<p>
+Back Links:<br />
+<a href="#orgf6a5a40">Brass tacks</a><br />
+<a href="#org1e02cb4">0041B108 - aka 108 - input timer and flag setting function</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org2c8d7da" class="outline-3">
+<h3 id="org2c8d7da">009A8730 - aka 30 - Timer</h3>
+<div class="outline-text-3" id="text-org2c8d7da">
+<p>
+Keeps track of time passed since inputs were processed, either by
+press or a tick of repeat.
+</p>
+
+<p>
+Gets set to 0 when the following is true:
+</p>
+
+<ul class="org-ul">
+<li><p>
+E0 (keys this frame) holds a value greater than 0.
+</p>
+
+<p>
+OR the following is all true:
+</p></li>
+
+<li>E0 (keys this frame) holds no value, 0.</li>
+<li>D4 (all held keys) holds a value greater than 0.</li>
+<li>The timer not less than the 'current wait'.</li>
+</ul>
+
+<p>
+Back Links:<br />
+<a href="#org1e02cb4">0041B108 - aka 108 - input timer and flag setting function</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org0ab8e92" class="outline-3">
+<h3 id="org0ab8e92">009A872C - aka 2C - Repeat gate/flag</h3>
+<div class="outline-text-3" id="text-org0ab8e92">
+<p>
+An address that gets set to either 1 or 0. It gets set to 1 when the
+following is true:
+</p>
+
+<ul class="org-ul">
+<li><p>
+E0 (keys this frame) holds a value greater than 0.
+</p>
+
+<p>
+OR the following is all true:
+</p></li>
+
+<li>E0 (keys this frame) holds no value, 0.</li>
+<li>D4 (all held keys) holds a value greater than 0.</li>
+<li>The timer not less than the 'current wait'.</li>
+</ul>
+
+<p>
+It is read from in one place.
+</p>
+
+<pre class="example">
+| address  | bytes       | code               |
+|----------+-------------+--------------------|
+| 0041B0C3 | A1 2C879A00 | mov eax,[009A872C] |
+</pre>
+
+<p>
+More on this later.
+</p>
+
+<p>
+Back Links:<br />
+<a href="#org1e02cb4">0041B108 - aka 108 - input timer and flag setting function</a><br />
+<a href="#org62cc228">Whats in there, and why the fix works.</a><br />
+<a href="#orgf6a5a40">Brass tacks</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org24861da" class="outline-3">
+<h3 id="org24861da">009A8734 - aka 34 - Repeat is active flag</h3>
+<div class="outline-text-3" id="text-org24861da">
+<p>
+A flag that is set to 0 when:
+</p>
+<ul class="org-ul">
+<li>E0 (keys this frame) holds a value greater than 0.</li>
+</ul>
+
+<p>
+It is set to 1 when the following are all true:
+</p>
+<ul class="org-ul">
+<li>E0 holds no value (all 0's)</li>
+<li>D4 (all held keys) holds a value greater than 0.</li>
+<li>The timer is not less than 'current wait'.</li>
+</ul>
+
+<p>
+In English, this flag = 1 when these three things are true:
+</p>
+<ul class="org-ul">
+<li>No buttons were pressed this frame</li>
+<li>One or more buttons are still held this frame</li>
+<li>Either 200ms has passed since the last button was pressed or 50ms
+has passed since the last tick of repeat.</li>
+</ul>
+
+<p>
+This flag, as written, is 1 when inputs should repeat. And 0 when only
+keys pressed this frame should be processed.
+</p>
+
+<p>
+<b>This flag is never read by the game at any point in time.</b>
+</p>
+
+<p>
+Back Links:<br />
+<a href="#org1e02cb4">0041B108 - aka 108 - input timer and flag setting function</a><br />
+<a href="#org62cc228">Whats in there, and why the fix works.</a><br />
+<a href="#orgf6a5a40">Brass tacks</a>
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org1ffa1b9" class="outline-2">
+<h2 id="org1ffa1b9">Functions</h2>
+<div class="outline-text-2" id="text-org1ffa1b9">
+<p>
+In some cases showing the code is either unnecessary or stupid. Both
+cases just waste space, but the stupid one involves a few thousand
+lines. So if you want to read it, the addresses are there to look up.
+</p>
+
+<p>
+<b>Line breaks in tables are for readability, line breaks are placed
+directly above jump destinations.</b>
+</p>
+</div>
+
+<div id="outline-container-org1e02cb4" class="outline-3">
+<h3 id="org1e02cb4">0041B108 - aka 108 - input timer and flag setting function</h3>
+<div class="outline-text-3" id="text-org1e02cb4">
+<p>
+This is the beating heart of menu inputs.
+</p>
+
+<p>
+A lot of values get set here prior to the current frame/cycle of input
+processing/parsing.
+</p>
+
+<p>
+If you to re read the following sections the code below is easier to
+follow. Use the 'back links' to return here. Remember 'aka 108'.
+</p>
+
+<p>
+<a href="#org2990386">009A8714 - aka 14 - Current input repeat wait</a><br />
+<a href="#org2c8d7da">009A8730 - aka 30 - Timer</a><br />
+<a href="#org0ab8e92">009A872C - aka 2C - Repeat gate/flag</a><br />
+<a href="#org24861da">009A8734 - aka 34 - Repeat is active flag</a><br />
+<a href="#org7447c8c">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
+<a href="#org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</a>
+</p>
+
+<pre class="example">
+| address  | bytes                   | code                        | comments                                |
+|----------+-------------------------+-----------------------------+-----------------------------------------|
+| 0041B108 | 55                      | push ebp                    |                                         |
+| 0041B109 | 8B EC                   | mov ebp,esp                 |                                         |
+| 0041B10B | C7 05 2C879A00 00000000 | mov [009A872C],00000000     | "repeat gate" flag is zeroed            |
+| 0041B115 | 83 3D E0859A00 00       | cmp dword ptr [009A85E0],00 | if any keys were not pressed this frame |
+| 0041B11C | 74 2A                   | je 0041B148                 | jump to address 0041B148                |
+| 0041B11E | C7 05 34879A00 00000000 | mov [009A8734],00000000     | zero "repeat is active" flag            |
+| 0041B128 | A1 C8859A00             | mov eax,[009A85C8]          | load delay value (200)                  |
+| 0041B12D | A3 14879A00             | mov [009A8714],eax          | put delay value in "current wait"       |
+| 0041B132 | C7 05 2C879A00 01000000 | mov [009A872C],00000001     | set "repeat gate" flag to 1             |
+| 0041B13C | C7 05 30879A00 00000000 | mov [009A8730],00000000     | set timer to 0                          |
+| 0041B146 | EB 41                   | jmp 0041B189                | jump to address                         |
+|----------+-------------------------+-----------------------------+-----------------------------------------|
+| 0041B148 | 83 3D D4859A00 00       | cmp dword ptr [009A85D4],00 | if any keys are not held this frame     |
+| 0041B14F | 74 38                   | je 0041B189                 | jump to address 0041B189                |
+| 0041B151 | 8B 0D 30879A00          | mov ecx,[009A8730]          | load timer value                        |
+| 0041B157 | 3B 0D 14879A00          | cmp ecx,[009A8714]          | if timer is less than "current wait"    |
+| 0041B15D | 72 2A                   | jb 0041B189                 | jump to address 0041B189                |
+| 0041B15F | 8B 15 E4859A00          | mov edx,[009A85E4]          | load rate value (50)                    |
+| 0041B165 | 89 15 14879A00          | mov [009A8714],edx          | put rate value in "current wait"        |
+| 0041B16B | C7 05 34879A00 01000000 | mov [009A8734],00000001     | set "repeat is active" flag to 1        |
+| 0041B175 | C7 05 2C879A00 01000000 | mov [009A872C],00000001     | set "repeat gate" flag to 1             |
+| 0041B17F | C7 05 30879A00 00000000 | mov [009A8730],00000000     | set timer to 0                          |
+|----------+-------------------------+-----------------------------+-----------------------------------------|
+| 0041B189 | 5D                      | pop ebp                     |                                         |
+| 0041B18A | C3                      | ret                         |                                         |
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org394b874" class="outline-3">
+<h3 id="org394b874">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</h3>
+<div class="outline-text-3" id="text-org394b874">
+<p>
+Reference Links:<br />
+<a href="#org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</a>
+</p>
+
+<p>
+The name says it all really.  The function is passed a
+representational value of a button in the stack. 'See Inputs and their
+values' above.
+</p>
+
+<p>
+Returns non zero value in eax register if a key value passed to it in
+the stack matches a bit in D4.
+</p>
+
+<pre class="example">
+| address  | bytes       | code               | comments                                                              |
+|----------+-------------+--------------------+-----------------------------------------------------------------------|
+| 0041AB67 | 55          | push ebp           | start of all keys function, stores stack pointer                      |
+| 0041AB68 | 8B EC       | mov ebp,esp        | sets pointer                                                          |
+| 0041AB6A | A1 D4859A00 | mov eax,[009A85D4] | puts 'all keys' in eax register                                       |
+| 0041AB6F | 23 45 08    | and eax,[ebp+08]   | checks if the bit for the key held in the stack is in eax(009A85D4)   |
+| 0041AB72 | 5D          | pop ebp            | restores stored stack pointer                                         |
+| 0041AB73 | C3          | ret                | return with the value of the button in eax, if found. 0 in eax if not |
+</pre>
+
+<p>
+Back Links:<br />
+<a href="#org62cc228">Whats in there, and why the fix works.</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org1836dad" class="outline-3">
+<h3 id="org1836dad">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</h3>
+<div class="outline-text-3" id="text-org1836dad">
+<p>
+Reference Links:<br />
+<a href="#org7447c8c">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a>
+</p>
+
+<p>
+Exact same as the above function (B67) only it checks E0 (keys this frame).
+</p>
+
+<p>
+Back Links:<br />
+<a href="#org62cc228">Whats in there, and why the fix works.</a><br />
+<a href="#orgf6a5a40">Brass tacks</a><br />
+<a href="#orgdd24afb">007212FB - aka 2FB - first menu main(-ish)</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org4e5f9a8" class="outline-3">
+<h3 id="org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</h3>
+<div class="outline-text-3" id="text-org4e5f9a8">
+<p>
+Reference links:<br />
+<a href="#org0ab8e92">009A872C - aka 2C - Repeat gate/flag</a><br />
+<a href="#org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#orgccf232b">009A85E4 - aka E4 - Input repeat rate</a><br />
+<a href="#org394b874">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a>
+</p>
+
+<p>
+Gets passed a key value in the stack and checks for it in the D4 "all
+held keys" memory location by calling the 0041AB67 'in all keys'
+function.
+</p>
+
+<p>
+Returns a non zero value in the eax register if the button is found in
+D4 and the repeat gate/flag is 1. If a non zero value is returned
+the found key is played in game later (with some exceptions #1).
+</p>
+
+<p>
+This function is the only method menus use to check for inputs from
+keys that have the potential to repeat.
+</p>
+
+<p>
+Used by menus to find repeatable keys and repeatable keys only. The
+problem is there is no distinction made between the initial presses of
+the repeatable keys and an already held key.
+</p>
+
+<p>
+This function is called by a variety of what I call repeatable key
+wrapper functions, that either have a list of repeatable keys that
+suit the calling menu's context and are one at a time passed to this
+function (099) or are themselves passed keys to pass onto this
+function.
+</p>
+
+<p>
+Whats more is the press of any button (with exceptions based on
+context - <a href="#org2543c4f">#2</a>) causes an already held key to get played in game, even
+if that pressed key has no effect on that menu and no code to handle
+or acknowledge it in that menu.
+</p>
+
+<p>
+A press of any key causes this function to return all repeatable keys
+that are in a down state down state as valid for processing.
+Regardless of whether or not it is time to play held repeatable keys.
+</p>
+
+<p>
+I describe this as, in menus, every input triggers a tick of input
+repeat.
+</p>
+
+<p>
+I cant be 100% sure whether this stems from fault or failure in the
+writing of this function or some other part of the code before or
+after each call of it. But I believe that this function is likely the
+cause of double input and was likely where a proper implementation of
+repeatable input parsing was being constructed.
+</p>
+
+<p>
+But what I am sure of, is the fact that it, like other parts of the
+code, has a nonsense about it. A nonsense that can be leveraged to
+repair the bug. And that it is used for every menus processing of keys
+that have the potential to repeat and so is a single place where a fix
+can go that would mend all menus at once.
+</p>
+<pre class="example">
+| address  | bytes             | code                        | comments                                        |
+|----------+-------------------+-----------------------------+-------------------------------------------------|
+| 0041B099 | 55                | push ebp                    |                                                 |
+| 0041B09A | 8B EC             | mov ebp,esp                 |                                                 |
+| 0041B09C | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 | is E4 (address that holds rate) equal to 0      |
+| 0041B0A3 | 75 0E             | jne 0041B0B3                | jump if not, to 0041B0B3                        |
+|          |                   |                             | BELOW, TILL THE BREAK IS AN UNREACHABLE SECTION |
+| 0041B0A5 | 8B 45 08          | mov eax,[ebp+08]            | "load key to be checked" from stack             |
+| 0041B0A8 | 50                | push eax                    | push it into the top of the stack               |
+| 0041B0A9 | E8 B9FAFFFF       | call 0041AB67               | call "check if in all keys" function            |
+| 0041B0AE | 83 C4 04          | add esp,04                  | shifts stack pointer (ignore)                   |
+| 0041B0B1 | EB 19             | jmp 0041B0CC                | jmp to 0041B0CC                                 |
+|----------+-------------------+-----------------------------+-------------------------------------------------|
+| 0041B0B3 | 8B 4D 08          | mov ecx,[ebp+08]            | "load key to be checked" from stack             |
+| 0041B0B6 | 51                | push ecx                    | push it into the top of the stack               |
+| 0041B0B7 | E8 ABFAFFFF       | call 0041AB67               | call "check if in all keys" function            |
+| 0041B0BC | 83 C4 04          | add esp,04                  | shifts stack pointer (ignore)                   |
+| 0041B0BF | 85 C0             | test eax,eax                | AND's the eax register, w/o changing it         |
+| 0041B0C1 | 74 07             | je 0041B0CA                 | jumps if eax was 0, to 0041B0CA                 |
+| 0041B0C3 | A1 2C879A00       | mov eax,[009A872C]          | puts the "process keys" flag in eax             |
+| 0041B0C8 | EB 02             | jmp 0041B0CC                | jmp to 0041B0CC                                 |
+|----------+-------------------+-----------------------------+-------------------------------------------------|
+| 0041B0CA | 33 C0             | xor eax,eax                 | sets eax to 0 .... yea that makes sense \s      |
+|----------+-------------------+-----------------------------+-------------------------------------------------|
+| 0041B0CC | 5D                | pop ebp                     |                                                 |
+| 0041B0CD | C3                | ret                         | returns to caller                               |
+</pre>
+<p>
+From 0041B0A5 to 0041B0B1 will be referred to as 'Condition 1'.
+</p>
+
+<p>
+From 0041B0B3 to 0041B0CA will be referred to as 'Condition 2'.
+</p>
+
+<p>
+Back Links:<br />
+<a href="#org62cc228">Whats in there, and why the fix works.</a><br />
+<a href="#orgf6a5a40">Brass tacks</a><br />
+<a href="#org61c5590">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a><br />
+<a href="#orgaf5d847">006F53B2 - aka 3B2 - used for UDLR</a><br />
+<a href="#orgbe16060">006F53F1 - aka 3F1 - simple wrapper</a>
+</p>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org8b9f387" class="outline-2">
+<h2 id="org8b9f387">wrapper functions for 'check for repeatable key' (099)</h2>
+<div class="outline-text-2" id="text-org8b9f387">
+<p>
+Input repeat wrapper functions ultimately call 099 or a simpler
+wrapper function that in turn calls 099. They either take a key value
+(passed via the stack) or have their own list of key values baked in.
+</p>
+
+<p>
+UDLR = up, down, left, right
+</p>
+</div>
+
+<div id="outline-container-orgbe16060" class="outline-3">
+<h3 id="orgbe16060">006F53F1 - aka 3F1 - simple wrapper</h3>
+<div class="outline-text-3" id="text-orgbe16060">
+<p>
+Reference Links:<br />
+<a href="#org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+
+<p>
+Called by menus or wrapper functions to check just about any key,
+often directly by what I call a menus main function.
+</p>
+
+<p>
+Gets passed a key value in the stack and checks for it in the D4 "all
+held keys" memory location by calling the 0041B099 function. (099).
+</p>
+
+<p>
+If 099 returns with a non zero value in eax, this function returns
+with a non zero value in eax.
+</p>
+
+<p>
+If 099 returns with a 0 in eax, this function will return with a 0 in
+eax.
+</p>
+
+<pre class="example">
+| address  | bytes       | code             |
+|----------+-------------+------------------|
+| 006F53F1 | 55          | push ebp         |
+| 006F53F2 | 8B EC       | mov ebp,esp      |
+| 006F53F4 | 8B 45 08    | mov eax,[ebp+08] |
+| 006F53F7 | 50          | push eax         |
+| 006F53F8 | E8 9C5CD2FF | call 0041B099    |
+| 006F53FD | 83 C4 04    | add esp,04       |
+| 006F5400 | 5D          | pop ebp          |
+| 006F5401 | C3          | ret              |
+</pre>
+
+<p>
+Back Links:<br />
+<a href="#org62cc228">Whats in there, and why the fix works.</a><br />
+<a href="#orgf6a5a40">Brass tacks</a><br />
+<a href="#orgdd24afb">007212FB - aka 2FB - first menu main(-ish)</a><br />
+<a href="#orge0ef7a3">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a><br />
+<a href="#org61c5590">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgaf5d847" class="outline-3">
+<h3 id="orgaf5d847">006F53B2 - aka 3B2 - used for UDLR</h3>
+<div class="outline-text-3" id="text-orgaf5d847">
+<p>
+Reference Links:<br />
+<a href="#org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+
+<p>
+Called by menus or wrapper functions to check up, down, left or
+right.
+</p>
+
+<p>
+Does more than other smaller wrappers but all that matters for now is
+that it returns a non zero value in eax if the key was found and is
+valid for processing or another special case is met. And a zero if
+not.
+</p>
+
+<p>
+I have theory's and little time to test them. May be for the tutorial
+sections as the code does seem to be overriding cases where no button
+is found and setting them as found returning a 1 in eax. Not related
+to DI as DI can occur on any key, not just UDLR. When time allows I'll
+pull this thread.
+</p>
+
+<p>
+Gets passed a key value in the stack and checks for it in the D4 "all
+held keys" memory location by calling the 0041B099 function. (099).
+</p>
+
+<p>
+If 099 returns with a non zero value in eax, this function returns
+with a non zero value in eax. Specifically, a '00000001'.
+</p>
+
+<p>
+If 099 returns with a 0 in eax, this function will return with a 0 in
+eax unless a second value pulled from the stack does not match the key
+value that was checked for.
+</p>
+
+<p>
+Only keys that we dont find in 099 have the potential to get
+overridden. Keys we do find will always result in eax returning a non
+0 value.
+</p>
+
+<pre class="example">
+| address  | bytes             | code                  | comments                                |
+|----------+-------------------+-----------------------+-----------------------------------------|
+| 006F53B2 | 55                | push ebp              |                                         |
+| 006F53B3 | 8B EC             | mov ebp,esp           |                                         |
+| 006F53B5 | 83 EC 08          | sub esp,08            |                                         |
+| 006F53B8 | E8 115DD2FF       | call 0041B0CE         |                                         |
+| 006F53BD | 89 45 FC          | mov [ebp-04],eax      |                                         |
+| 006F53C0 | 8B 45 08          | mov eax,[ebp+08]      | "load key to be checked" from stack     |
+| 006F53C3 | 50                | push eax              | push it into the top of the stack       |
+| 006F53C4 | E8 D05CD2FF       | call 0041B099         | check for repeatable key function       |
+| 006F53C9 | 83 C4 04          | add esp,04            |                                         |
+| 006F53CC | 85 C0             | test eax,eax          | AND's the eax register, w/o changing it |
+| 006F53CE | 75 13             | jne 006F53E3          | jumps if eax is not 0, to 006F53E3      |
+| 006F53D0 | 8B 4D FC          | mov ecx,[ebp-04]      |                                         |
+| 006F53D3 | 23 4D 0C          | and ecx,[ebp+0C]      |                                         |
+| 006F53D6 | 85 C9             | test ecx,ecx          |                                         |
+| 006F53D8 | 75 09             | jne 006F53E3          |                                         |
+| 006F53DA | C7 45 F8 00000000 | mov [ebp-08],00000000 |                                         |
+| 006F53E1 | EB 07             | jmp 006F53EA          |                                         |
+|----------+-------------------+-----------------------+-----------------------------------------|
+| 006F53E3 | C7 45 F8 01000000 | mov [ebp-08],00000001 |                                         |
+|----------+-------------------+-----------------------+-----------------------------------------|
+| 006F53EA | 8B 45 F8          | mov eax,[ebp-08]      | sets eax to 0 or 1                      |
+| 006F53ED | 8B E5             | mov esp,ebp           |                                         |
+| 006F53EF | 5D                | pop ebp               |                                         |
+| 006F53F0 | C3                | ret                   | returns                                 |
+</pre>
+
+<p>
+Back Links:<br />
+<a href="#orgf6a5a40">Brass tacks</a><br />
+<a href="#org61c5590">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org61c5590" class="outline-3">
+<h3 id="org61c5590">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</h3>
+<div class="outline-text-3" id="text-org61c5590">
+<p>
+Reference Links:<br />
+<a href="#orgbe16060">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#orgaf5d847">006F53B2 - aka 3B2 - used for UDLR</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+
+<p>
+This wrapper is used by many menus to find UDLR.
+</p>
+
+<p>
+Laid out in this block of code is a list of directions that it checks
+one at a time by pushing them into the stack and calling a wrapper
+function.
+</p>
+
+<p>
+The order of the checks for inputs in this wrapper is:
+</p>
+
+<ul class="org-ul">
+<li>up</li>
+<li>down</li>
+<li>left</li>
+<li>right</li>
+<li>L1</li>
+<li>R1</li>
+</ul>
+
+<p>
+They can be seen every time there is a push followed by a call to
+006F53B2 aka 3B2&#x2026; not to be confused with DB2, this function. Or
+when there is a push followed by a call to 006F53F1 (aka 3F1) in the
+case of R1 and L1.
+</p>
+
+<p>
+BUT R1 and L1 often do not get reached. And are usually handled by the
+menus main calling 3F1 directly.
+</p>
+
+<p>
+This function is 433 lines/instructions long, small parts will be
+shown for illustration purposes.
+</p>
+
+<pre class="example">
+| address  | bytes         | code                      | comments                                  |
+|----------+---------------+---------------------------+-------------------------------------------|
+| 006F4DC5 | 6A 01         | push 01                   | related to 3B2's other purpose?           |
+| 006F4DC7 | 68 00100000   | push 00001000             | up                                        |
+| 006F4DCC | E8 E1050000   | call 006F53B2             | 3B2 call                                  |
+| 006F4DD1 | 83 C4 08      | add esp,08                |                                           |
+| 006F4DD4 | 85 C0         | test eax,eax              | AND's the eax register, w/o changing it   |
+| 006F4DD6 | 0F84 A4000000 | je 006F4E80               | jumps if 0                                |
+| ........ | ...           | ...                       | otherwise, processes                      |
+|----------+---------------+---------------------------+-------------------------------------------|
+| 006F4E80 | 6A 02         | push 02                   | related to 3B2's other purpose?           |
+| 006F4E82 | 68 00400000   | push 00004000             | down                                      |
+| 006F4E87 | E8 26050000   | call 006F53B2             | 3B2 call                                  |
+| 006F4E8C | 83 C4 08      | add esp,08                |                                           |
+| 006F4E8F | 85 C0         | test eax,eax              | AND's the eax register, w/o changing it   |
+| 006F4E91 | 0F84 AA000000 | je 006F4F41               | jumps if 0                                |
+| ........ | ...           | ...                       | otherwise, processes                      |
+|----------+---------------+---------------------------+-------------------------------------------|
+| 006F4F41 | 6A 08         | push 08                   | related to 3B2's other purpose?           |
+| 006F4F43 | 68 00800000   | push 00008000             | left                                      |
+| 006F4F48 | E8 65040000   | call 006F53B2             | 3B2 call                                  |
+| 006F4F4D | 83 C4 08      | add esp,08                |                                           |
+| 006F4F50 | 85 C0         | test eax,eax              | AND's the eax register, w/o changing it   |
+| 006F4F52 | 0F84 1D010000 | je 006F5075               | jumps if 0                                |
+| ........ | ...           | ...                       | otherwise, processes                      |
+|----------+---------------+---------------------------+-------------------------------------------|
+| 006F5075 | 6A 04         | push 04                   | related to 3B2's other purpose?           |
+| 006F5077 | 68 00200000   | push 00002000             | right                                     |
+| 006F507C | E8 31030000   | call 006F53B2             | 3B2 call                                  |
+| 006F5081 | 83 C4 08      | add esp,08                |                                           |
+| 006F5084 | 85 C0         | test eax,eax              | AND's the eax register, w/o changing it   |
+| 006F5086 | 0F84 62010000 | je 006F51EE               | jumps if 0                                |
+| ........ | ...           | ...                       | otherwise, processes                      |
+|----------+---------------+---------------------------+-------------------------------------------|
+| 006F51EE | 8B 55 08      | mov edx,[ebp+08]          |                                           |
+| 006F51F1 | 83 7A 34 00   | cmp dword ptr [edx+34],00 | makes a decision about skipping R1 and L1 |
+| 006F51F5 | 0F84 93000000 | je 006F528E               | skip or move on                           |
+| 006F51FB | 6A 08         | push 08                   | R1                                        |
+| 006F51FD | E8 EF010000   | call 006F53F1             | 3F1 call                                  |
+| 006F5202 | 83 C4 04      | add esp,04                |                                           |
+| 006F5205 | 85 C0         | test eax,eax              | AND's the eax register, w/o changing it   |
+| 006F5207 | 74 46         | je 006F524F               | jumps if 0                                |
+| ........ | ...           | ...                       | otherwise, processes                      |
+|----------+---------------+---------------------------+-------------------------------------------|
+| 006F524F | 6A 04         | push 04                   | L1                                        |
+| 006F5251 | E8 9B010000   | call 006F53F1             | 3F1 call                                  |
+| 006F5256 | 83 C4 04      | add esp,04                |                                           |
+| 006F5259 | 85 C0         | test eax,eax              | AND's the eax register, w/o changing it   |
+| 006F525B | 74 31         | je 006F528E               | jumps if 0                                |
+| ........ | ...           | ...                       | otherwise, processes                      |
+</pre>
+
+<p>
+In order to save space they likely made this wrapper that's just for
+directions and reused it where menus needed to process UDLR. Even if
+not all keys mattered in that menu, like 'New Game / Continue?' where
+left and right make no sense and don't take effect on that menu, but
+still are processed and returned as valid by 099 (exceptions #1).
+</p>
+
+<p>
+Whats important to take away from here is that eax is checked if it is
+0 or non zero, and then processing of the input is queued/takes place
+if its non zero.
+</p>
+
+<p>
+Back Links:<br />
+<a href="#orgdd24afb">007212FB - aka 2FB - first menu main(-ish)</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-orge0ef7a3" class="outline-3">
+<h3 id="orge0ef7a3">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</h3>
+<div class="outline-text-3" id="text-orge0ef7a3">
+<p>
+Reference links:<br />
+<a href="#orgbe16060">006F53F1 - aka 3F1 - simple wrapper</a>
+</p>
+
+<p>
+This is a repeatable keys wrapper used for the save slot selection sub
+menu of the first menu the player interacts with.
+</p>
+
+<p>
+I will not be covering it here. This is long enough and nothing new
+will be seen within it anyway. It is not used for saving, only
+loading. And perhaps other places. All the buttons it checks for, it
+does so with 3F1 (simple wrapper). The inputs it handles, in this
+order, are:
+</p>
+<ul class="org-ul">
+<li>Up</li>
+<li>Down</li>
+<li>Left  (i know, wtf)(exceptions #1)</li>
+<li>Right (i know, wtf)(exceptions #1)</li>
+<li>R1</li>
+<li>L1</li>
+</ul>
+
+<p>
+Back Links:<br />
+<a href="#orgdd24afb">007212FB - aka 2FB - first menu main(-ish)</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgdd24afb" class="outline-3">
+<h3 id="orgdd24afb">007212FB - aka 2FB - first menu main(-ish)</h3>
+<div class="outline-text-3" id="text-orgdd24afb">
+<p>
+Reference links:<br />
+<a href="#org7447c8c">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
+<a href="#org1836dad">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
+<a href="#orgbe16060">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org61c5590">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a><br />
+<a href="#orge0ef7a3">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a>
+</p>
+
+<p>
+This has input processing logic for keys in the first menu that loads
+(&#x2026;. kinda the second.. or third, but nevermind). Its where you
+choose 'New Game' or 'Continue?'.
+</p>
+
+<p>
+Not speaking authoritatively here on what is and isn't 'main'. It and
+other functions like it are as high up the chain I need to go to have
+all input parsing calls at the current functions level or in calls
+below it. So for now that name suits me, ish.
+</p>
+
+<p>
+This menu like others has sub menus, so a total of 3 menus are covered
+by this code. They and the single inputs (buttons that don't repeat)
+that they are coded to handle are as follows:
+</p>
+
+<ul class="org-ul">
+<li>New Game / Continue? - only circle</li>
+<li>Save file selection - circle and X</li>
+<li>Save slot selection - circle and X</li>
+</ul>
+
+<p>
+This calls the repeatable keys logic for each menu, and uses the
+0041AB74 (B74) (is key in recent list) function directly for all
+single inputs that the menu can handle&#x2026; inputs that don't repeat.
+</p>
+
+<p>
+This one is 1105 lines/instructions, again relevant parts are cherry
+picked.
+</p>
+
+<pre class="example">
+| address  | bytes         | code               | comments                                |
+|----------+---------------+--------------------+-----------------------------------------|
+| 00721E28 | 6A 20         | push 20            | circle (save file selection menu)       |
+| 00721E2A | E8 458DCFFF   | call 0041AB74      | B74 call (finds single inputs in E0)    |
+| 00721E2F | 83 C4 04      | add esp,04         |                                         |
+| 00721E32 | 85 C0         | test eax,eax       | AND's the eax register, w/o changing it |
+| 00721E34 | 0F84 28010000 | je 00721F62        | jumps if 0                              |
+| ........ | ...           | ...                | otherwise, processes                    |
+|----------+---------------+--------------------+-----------------------------------------|
+| 00721F62 | 6A 40         | push 40            | X  (save file selection menu)           |
+| 00721F64 | E8 0B8CCFFF   | call 0041AB74      | B74 call (finds single inputs in E0)    |
+| 00721F69 | 83 C4 04      | add esp,04         |                                         |
+| 00721F6C | 85 C0         | test eax,eax       |                                         |
+| 00721F6E | 74 16         | je 00721F86        |                                         |
+| ........ | ...           | ...                | otherwise, processes                    |
+|----------+---------------+--------------------+-----------------------------------------|
+| 00721F86 | 68 986DDD00   | push 00DD6D98      | Menu identification/criteria?           |
+| 00721F8B | E8 222EFDFF   | call 006F4DB2      | DB2 call, for file selection            |
+| 00721F90 | 83 C4 04      | add esp,04         |                                         |
+| 00721F93 | E9 79030000   | jmp 00722311       | Jump to end of function                 |
+| ........ | ...           | ...                | ...                                     |
+|----------+---------------+--------------------+-----------------------------------------|
+| 00721FA1 | 68 D06DDD00   | push 00DD6DD0      | Menu identification/criteria?           |
+| 00721FA6 | E8 37E2FFFF   | call 007201E2      | 1E2 call, save slot selection           |
+| ........ | ...           | ...                | ...                                     |
+|----------+---------------+--------------------+-----------------------------------------|
+| 00721FC5 | 6A 20         | push 20            | circle (save slot selection menu)       |
+| 00721FC7 | E8 A88BCFFF   | call 0041AB74      | B74 call (finds single inputs in E0)    |
+| 00721FCC | 83 C4 04      | add esp,04         |                                         |
+| 00721FCF | 85 C0         | test eax,eax       |                                         |
+| 00721FD1 | 74 50         | je 00722023        |                                         |
+| ........ | ...           | ...                | otherwise, processes                    |
+|----------+---------------+--------------------+-----------------------------------------|
+| 00722023 | 6A 40         | push 40            | X (save slot selection)                 |
+| 00722025 | E8 4A8BCFFF   | call 0041AB74      | B74 call (finds single inputs in E0)    |
+| 0072202A | 83 C4 04      | add esp,04         |                                         |
+| 0072202D | 85 C0         | test eax,eax       |                                         |
+| 0072202F | 74 19         | je 0072204A        | Jump to jump to end of function         |
+| ........ | ...           | ...                | ...                                     |
+|----------+---------------+--------------------+-----------------------------------------|
+| 0072204A | E9 C2020000   | jmp 00722311       | Jump to end of function                 |
+| ........ | ...           | ...                | ...                                     |
+|----------+---------------+--------------------+-----------------------------------------|
+| 0072225A | 6A 20         | push 20            | circle (New Game/Continue)              |
+| 0072225C | E8 1389CFFF   | call 0041AB74      | B74 call (finds single inputs in E0)    |
+| 00722261 | 83 C4 04      | add esp,04         |                                         |
+| 00722264 | 85 C0         | test eax,eax       |                                         |
+| 00722266 | 0F84 98000000 | je 00722304        |                                         |
+| ........ | ...           | ...                | otherwise, processes                    |
+|----------+---------------+--------------------+-----------------------------------------|
+| 00722304 | 68 206FDD00   | push 00DD6F20      | Menu identification/criteria?           |
+| 00722309 | E8 A42AFDFF   | call 006F4DB2      | DB2 call, for New Game screen           |
+| 0072230E | 83 C4 04      | add esp,04         |                                         |
+|----------+---------------+--------------------+-----------------------------------------|
+| 00722311 | A1 3877DD00   | mov eax,[00DD7738] |                                         |
+| 00722316 | 8B E5         | mov esp,ebp        |                                         |
+| 00722318 | 5D            | pop ebp            |                                         |
+| 00722319 | C3            | ret                |                                         |
+</pre>
+</div>
+
+<div id="outline-container-org64cf45e" class="outline-4">
+<h4 id="org64cf45e">What we can surmise</h4>
+<div class="outline-text-4" id="text-org64cf45e">
+<p>
+The fact that inputs can be doubled by the press of keys other than
+those in the list for single inputs or repeatable inputs highlight
+further that this is a bug.
+</p>
+
+<p>
+For example in all three of these menus, inputs can be doubled by
+every key not included in the single inputs and repeatable inputs
+list. What business do these keys have taking effect on inputs in
+these menus when there is no code to use them in these contexts.
+</p>
+
+<p>
+Keys that can repeat are all those in the repeatable keys logic
+list. And all those that can trigger them is every key.
+</p>
+
+<p>
+Try Up &gt; Triangle in New Game / Continue?<br />
+Try Right &gt; Square in File selection.<br />
+etc etc
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-orgf6a5a40" class="outline-2">
+<h2 id="orgf6a5a40">Brass tacks</h2>
+<div class="outline-text-2" id="text-orgf6a5a40">
+<p>
+Reference links:<br />
+<a href="#org24861da">009A8734 - aka 34 - Repeat is active flag</a><br />
+<a href="#org0ab8e92">009A872C - aka 2C - Repeat gate/flag</a><br />
+<a href="#org7447c8c">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
+<a href="#org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#org2990386">009A8714 - aka 14 - Current input repeat wait</a><br />
+<a href="#org1836dad">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
+<a href="#orgaf5d847">006F53B2 - aka 3B2 - used for UDLR</a><br />
+<a href="#orgbe16060">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+
+<p>
+So what we have seen so far and some objective and subjective
+babbling&#x2026;
+</p>
+
+<ul class="org-ul">
+<li><p>
+When any input is cleared for processing in menus it ultimately is
+done so by testing eax and processing if eax is not 0.
+</p>
+
+<p>
+Seen following calls to:
+</p>
+<ul class="org-ul">
+<li>B74 - "check if key in 'recent keys'(E0)" (for single inputs)</li>
+<li>3F1 - simple wrapper</li>
+</ul>
+
+<p>
+We also see other functions perform the eax test and their own
+additional checks/actions before sending the result up the chain to
+the calling function(s):
+</p>
+<ul class="org-ul">
+<li>3B2 - UDLR</li>
+<li>099 - check for repeatable key function (oh we'll get to you)</li>
+</ul></li>
+
+<li><p>
+34, the repeat is active flag, is set and never checked.
+</p>
+
+<p>
+And its value changes perfectly line up with when the 200ms delay
+should be respected.
+</p></li>
+
+<li><p>
+2C, what I call the repeat gate flag, not because of when it gets
+set, like why I call 34 what I do. But because of the one and only
+place it is checked. In 099.
+</p>
+
+<p>
+If forced to be only ever 1, repeat is constant and immediate. It
+is what keeps repeat firing on 50ms ticks, it is what keeps it from
+firing before the 200ms wait has passed. It gates repeat from
+occurring.
+</p>
+
+<p>
+Im of the firm belief that the only reason it is 1 when a value is
+found in E0 is because they janked up implementing the repeat
+feature and creating double input was the solution. It not being
+assigned 1 in 108 when E0 is occupied, without first finishing the
+implementation, means no input for repeatable keys until after
+200ms.
+</p>
+
+<p>
+A band aid slapped in place because of time constraints or rotating
+someone off the job before it was finished or both. Or whatever.
+</p></li>
+
+<li><p>
+099, the place all roads lead to (other than B67) when parsing
+repeatable keys, is only ever used in menus and has an unreachable
+condition and only ever pulls from D4 (all held keys).
+</p>
+
+<p>
+I'll say, though I may need to do more work explaining it, that
+clearly it should be pulling from E0 (keys this frame) if/when
+there is a value in it. Keys never have any business repeating when
+E0 occupied.
+</p>
+
+<p>
+In fact, the fix uses the 34 flag, but E0 would accomplish the same
+thing, 34 doesn't need to exist, 2C will do the rest of the job
+just fine. But it does&#x2026; so why not use it. Its faster than using
+E0 thanks to the skipped unnecessary test and dumb extra xor. Which
+is likely 34's purpose. Guiding to a condition where unnecessary
+code does not take place. The is no point in checking for the next
+tick of repeat while delay is in 'current wait'.
+</p>
+
+<p>
+It could be argued that checking if current wait is 200 could then
+be a solution. And while the logic is sound, it wouldn't fit. The
+instruction would be 10 bytes long in a space that's only 7 bytes
+long. Nope, 34 is Keanu Reeves.
+</p></li>
+</ul>
+</div>
+</div>
+
+<div id="outline-container-orgb12faf4" class="outline-2">
+<h2 id="orgb12faf4">The unreachable condition (condition 1 of 099)</h2>
+<div class="outline-text-2" id="text-orgb12faf4">
+</div>
+<div id="outline-container-orge04bd02" class="outline-3">
+<h3 id="orge04bd02">Why we don't get there</h3>
+<div class="outline-text-3" id="text-orge04bd02">
+<p>
+Reference links:<br />
+<a href="#orgee24c85">009A85C8 - aka C8 - Input Repeat Delay</a><br />
+<a href="#orgccf232b">009A85E4 - aka E4 - Input repeat rate</a>
+</p>
+
+<p>
+This line is the gate keeper of condition 1 in 099.
+</p>
+
+<pre class="example">
+| address  | bytes             | code                        | comments                |
+|----------+-------------------+-----------------------------+-------------------------|
+| 0041B09C | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 | is E4 (rate) equal to 0 |
+</pre>
+
+<p>
+E4 is only ever 0, at one point in the game.
+</p>
+
+<p>
+009A85C8 holds the delay 200<br />
+009A85E4 holds the rate 50
+</p>
+
+<p>
+Right before the intros those vars get assigned their values by this
+function for the very first time. <b>Their values never change after
+this.</b>
+</p>
+
+<p>
+<span class="underline">0041B0D8</span> - Timings assignment function
+</p>
+
+<pre class="example">
+| address  | bytes          | code               | comments |
+|----------+----------------+--------------------+----------|
+| 0041B0D8 | 55             | push ebp           |          |
+| 0041B0D9 | 8B EC          | mov ebp,esp        |          |
+| 0041B0DB | 8B 45 08       | mov eax,[ebp+08]   |          |
+| 0041B0DE | A3 C8859A00    | mov [009A85C8],eax |      200 |
+| 0041B0E3 | 8B 4D 0C       | mov ecx,[ebp+0C]   |          |
+| 0041B0E6 | 89 0D E4859A00 | mov [009A85E4],ecx |       50 |
+| 0041B0EC | 5D             | pop ebp            |          |
+| 0041B0ED | C3             | ret                |          |
+</pre>
+
+<p>
+For right after the intros the origins of those values are dwords in
+the stack at 011D5104 (200) and 011D5108 (50) and they get there here
+just prior to calling the function.
+</p>
+
+<pre class="example">
+|  address | bytes       | code          | comments |
+|----------+-------------+---------------+----------|
+| 007223D4 | 6A 32       | push 32       |       50 |
+| 007223D6 | 68 C8000000 | push 000000C8 |      200 |
+| 007223DB | E8 F88CCFFF | call 0041B0D8 |          |
+</pre>
+
+<p>
+This is a list of places that function gets called from (or is even at
+all referenced), and exactly like above, 50 and 200 get put in the
+stack just prior to calling, never 0 for either value.
+</p>
+
+<pre class="example">
+| address  | bytes       | code          |
+|----------+-------------+---------------|
+| 00408A5E | E8 75260100 | call 0041B0D8 |
+| 006CB584 | E8 4FFBD4FF | call 0041B0D8 |
+| 006FFFEF | E8 E4B0D1FF | call 0041B0D8 |
+| 00701FA3 | E8 3091D1FF | call 0041B0D8 |
+| 00719C48 | E8 8B14D0FF | call 0041B0D8 |
+| 0071FFE3 | E8 F0B0CFFF | call 0041B0D8 |
+| 007223DB | E8 F88CCFFF | call 0041B0D8 |
+| 0074BC25 | E8 AEF4CCFF | call 0041B0D8 |
+</pre>
+
+<p>
+It is possible that there are other calls that are done with relative
+pointers, but I haven't found them. And as best as I can tell, this
+function is used to set these values every time an input handling
+module is loaded. If their are inputs to handle, this function is run
+before preparing to do so.
+</p>
+
+<p>
+Checking the process memory the moment it spawns, shows that those
+values are in place after a fraction of a second. So there is a window of
+time when the process starts when they, or most importantly E4 (rate
+&#x2026; 50) is 0. It is very small. Sending the game inputs in that window
+of time would take effort but is not impossible. Whether it is capable
+of receiving or processing inputs at this time is another question.
+</p>
+
+<p>
+The moment a menu scene/module is loaded, the timing assignment
+function is called.  So code in those modules checking for rate to be
+0 is, dumb. Assuming the above function is never used to set the rate
+var to 0 with relative pointers that I missed. And assuming I am
+correct about the zeroing function below.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org6591a38" class="outline-3">
+<h3 id="org6591a38">the zeroing function</h3>
+<div class="outline-text-3" id="text-org6591a38">
+<p>
+This function zeros
+</p>
+<ul class="org-ul">
+<li>the timer (30)</li>
+<li>the repeat is active flag (34)</li>
+<li>the delay holding variable (C8)</li>
+<li>the rate holding variable (E4)</li>
+</ul>
+
+<pre class="example">
+| address  | bytes                   | code                    |
+|----------+-------------------------+-------------------------|
+| 0041B18B | 55                      | push ebp                |
+| 0041B18C | 8B EC                   | mov ebp,esp             |
+| 0041B18E | C7 05 30879A00 00000000 | mov [009A8730],00000000 |
+| 0041B198 | C7 05 C8859A00 00000000 | mov [009A85C8],00000000 |
+| 0041B1A2 | A1 C8859A00             | mov eax,[009A85C8]      |
+| 0041B1A7 | A3 E4859A00             | mov [009A85E4],eax      |
+| 0041B1AC | C7 05 34879A00 00000000 | mov [009A8734],00000000 |
+| 0041B1B6 | 5D                      | pop ebp                 |
+| 0041B1B7 | C3                      | ret                     |
+</pre>
+
+<p>
+<b>Nowhere in the code is this function ever explicitly referenced, at
+all. Neither as value or pointer.</b>
+</p>
+
+<p>
+Like the rate and delay assignment function there is the possibility
+that there are calls to this function using relative pointers, but I
+cant find this function executing at all with breakpoints, in menus or
+otherwise.
+</p>
+
+<p>
+As best as I can tell this code is never reached, and at least is
+never reached during menus. When it could have had some effect on the
+repeat processing. Though double input would still exist and
+repeatable inputs would be insane&#x2026;. its a tick rate of 0. See my mod
+for what that would be like.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org2ac08ea" class="outline-3">
+<h3 id="org2ac08ea">all instructions that reference E4 explicitly</h3>
+<div class="outline-text-3" id="text-org2ac08ea">
+<p>
+The search was over entirety of the assembly across all memory
+addresses (00000000 -&gt; FFFFFFFF) for any reference to 009A85E4. This
+is as a value or a pointer. Only pointers were found.
+</p>
+
+<p>
+COMPARES TO 0:<br />
+Mystery nonsense conditionals that are, as best as I can tell, in
+places that that are unreachable when E4 is 0 at the very beginning of
+the process.
+</p>
+<pre class="example">
+|----------+-------------------+-----------------------------+------------------|
+| 0041A766 | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 |                  |
+| 0041AD81 | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 |                  |
+| 0041AE98 | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 |                  |
+| 0041AF12 | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 |                  |
+| 0041AF88 | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 |                  |
+| 0041B002 | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 |                  |
+| 0041B09C | 83 3D E4859A00 00 | cmp dword ptr [009A85E4],00 | The one from 099 |
+|----------+-------------------+-----------------------------+------------------|
+</pre>
+
+<p>
+PUTS A VALUE INTO AN ADDRESS RELATIVE TO E4'S POSITION:<br />
+To clarify, relative means it is putting a value into an address some
+number of places above or below E4. Not into E4 itself.
+</p>
+<pre class="example">
+|----------+-------------------+------------------------------|
+| 0041A81D | 89 8C 82 E4859A00 | mov [edx+eax*4+009A85E4],ecx |
+|----------+-------------------+------------------------------|
+</pre>
+
+<p>
+READS THE VALUE OF E4:
+</p>
+<pre class="example">
+|----------+----------------+--------------------|
+| 0041AEC4 | 8B 0D E4859A00 | mov ecx,[009A85E4] |
+| 0041AECD | 8B 15 E4859A00 | mov edx,[009A85E4] |
+| 0041AF38 | 8B 0D E4859A00 | mov ecx,[009A85E4] |
+| 0041AF41 | 8B 15 E4859A00 | mov edx,[009A85E4] |
+| 0041AFB4 | 8B 0D E4859A00 | mov ecx,[009A85E4] |
+| 0041AFBD | 8B 15 E4859A00 | mov edx,[009A85E4] |
+| 0041B028 | 8B 0D E4859A00 | mov ecx,[009A85E4] |
+| 0041B031 | 8B 15 E4859A00 | mov edx,[009A85E4] |
+| 0041B0FF | A1 E4859A00    | mov eax,[009A85E4] |
+| 0041B15F | 8B 15 E4859A00 | mov edx,[009A85E4] |
+|----------+----------------+--------------------|
+</pre>
+
+<p>
+THE TWO AND ONLY INSTANCES IN THE ASSEMBLY WHERE THERE ARE WRITES TO E4:
+</p>
+<pre class="example">
+|----------+----------------+--------------------+----------------------------------------|
+| 0041B0E6 | 89 0D E4859A00 | mov [009A85E4],ecx | assignment function (where it gets 50) |
+| 0041B1A7 | A3 E4859A00    | mov [009A85E4],eax | zeroing function                       |
+|----------+----------------+--------------------+----------------------------------------|
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org62cc228" class="outline-3">
+<h3 id="org62cc228">Whats in there, and why the fix works.</h3>
+<div class="outline-text-3" id="text-org62cc228">
+<p>
+Reference links:<br />
+<a href="#org24861da">009A8734 - aka 34 - Repeat is active flag</a><br />
+<a href="#org0ab8e92">009A872C - aka 2C - Repeat gate/flag</a><br />
+<a href="#org7447c8c">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
+<a href="#org58cb8c0">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#org394b874">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a><br />
+<a href="#org1836dad">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
+<a href="#orgbe16060">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a><br />
+</p>
+
+<p>
+When we compare condition 1 to condition two, we see they are quite
+similar.
+</p>
+
+<p>
+Condition 1, unreachable.
+</p>
+
+<pre class="example">
+| code             | comments                             |
+|------------------+--------------------------------------|
+| mov eax,[ebp+08] | "load key to be checked" from stack  |
+| push eax         | push it into the top of the stack    |
+| call 0041AB67    | call "check if in all keys" function |
+| add esp,04       | shifts stack pointer (ignore)        |
+| jmp 0041B0CC     | jmp to 0041B0CC                      |
+</pre>
+
+<p>
+Condition 2.
+</p>
+
+<pre class="example">
+| code               | comments                                           |
+|--------------------+----------------------------------------------------|
+| mov ecx,[ebp+08]   | "load key to be checked" from stack                |
+| push ecx           | push it into the top of the stack                  |
+| call 0041AB67      | call "check if in all keys" function               |
+| add esp,04         | shifts stack pointer (ignore)                      |
+| test eax,eax       | AND's the eax register                             |
+| je 0041B0CA        | jumps if eax was 0, to set eax to 0, which is dumb |
+| mov eax,[009A872C] | puts the "repeat gate" flag in eax                 |
+| jmp 0041B0CC       | jmp to 0041B0CC                                    |
+</pre>
+
+<ul class="org-ul">
+<li>Both load the key value from the stack.</li>
+<li>Both push it to the top of the stack.</li>
+<li>Both call B67.</li>
+</ul>
+
+<p>
+Condition 2:
+</p>
+<ul class="org-ul">
+<li>Checks if the key was found (the 'test eax,eax').</li>
+<li>Then moves the repeat gate flag into eax if it was.</li>
+</ul>
+
+<p>
+We now have all the pieces.
+</p>
+
+<p>
+We know that DI is not intentional, there is no code for handling keys
+that can trigger repeat in certain menus, like Up &gt; Triangle in New
+Game/Continue menu, seriously&#x2026;..
+</p>
+
+<p>
+Their is an unused flag, perfectly in sync with when the 200ms wait
+should be respected.
+</p>
+
+<p>
+The conditional in 099 (cmp dword ptr [009A85E4],00) is nonsense,
+checking if E4 is 0, when it only ever gets set to 50 every, single,
+time, you enter a menu.
+</p>
+
+<p>
+We have the facility to pull inputs from E0 (keys this frame).
+</p>
+
+<p>
+We know that from 099 all we need to do is pass a 0 or non zero in eax
+up the chain of calling functions depending on if a key is found and
+should be played in game.
+</p>
+
+<p>
+We know that in this unique place (099) where the repeat features
+timing(2C) is kept in sync with keys getting processed when
+found. There is a condition that does
+</p>
+</div>
+
+<div id="outline-container-org797241c" class="outline-4">
+<h4 id="org797241c">2C - repeat gate</h4>
+<div class="outline-text-4" id="text-org797241c">
+<p>
+As I've already covered the repeat gate being set while E0 is occupied
+makes little to no sense logically, other than to overcome an
+incomplete implementation of input repeat in menus. And this is the
+only place it is ever read from(loaded).
+</p>
+
+<p>
+So for the sake of argument lets assume it is only set in 1 scenario,
+rather than 2. That scenario being the second of its two scenarios
+mentioned at the beginning of this:
+</p>
+
+<ul class="org-ul">
+<li>E0 (keys this frame) holds no value, 0.</li>
+<li>D4 (all held keys) holds a value greater than 0.</li>
+<li>The timer not less than the 'current wait'.</li>
+</ul>
+
+<p>
+Now we have no inputs from repeatable keys until 200ms have
+passed while the button(s) are held. But DI still exists.
+</p>
+
+<p>
+Lets stick a pin in that.
+</p>
+</div>
+</div>
+
+<div id="outline-container-orgf0d4c8b" class="outline-4">
+<h4 id="orgf0d4c8b">cmp dword ptr [009A85E4],00 - Condition 1's unyielding gatekeeper</h4>
+<div class="outline-text-4" id="text-orgf0d4c8b">
+<p>
+This fella makes no sense, so lets give it a purpose.
+</p>
+
+<p>
+Now it checks the repeat is active flag (34).
+</p>
+
+<p>
+And for thought experimentation purposes lets just say that condition
+one is blank (nop'ed). Does nothing, just jumps to the end of the
+function.
+</p>
+
+<p>
+Now we have no inputs from repeatable keys until 200ms have passed
+while the button(s) are held. AND DI is gone, cant happen, period.
+</p>
+
+<p>
+This is even if 2C is permitted to be 1 when E0 is occupied. It is now
+never loaded by 099 when E0 is occupied, or while the 200ms delay is
+active. It does not matter while 34 is 0.
+</p>
+</div>
+</div>
+
+<div id="outline-container-org74858ae" class="outline-4">
+<h4 id="org74858ae">Now lets look at condition 1.</h4>
+<div class="outline-text-4" id="text-org74858ae">
+<p>
+Its effectively 3F1. A simple call to B67 (check if in 'all
+keys'(D4)), receives result, and pass it up the chain. 2C does not
+matter to it. Only if a key is found, and that's really the callers
+problem.
+</p>
+
+<p>
+If its call is to B74 (check if key in 'recent keys'(E0)) instead of
+B67 (check if in 'all keys'(D4)).
+</p>
+
+<p>
+And if we change that gatekeeper to check repeat is active flag (34).
+</p>
+
+<p>
+There is now inputs on key press for repeatable keys, double input is
+gone. Repeat after 200ms works like normal, as it should. And there
+are not undesirable effects. The DI fix.
+</p>
+</div>
+</div>
+</div>
+</div>
+
+<div id="outline-container-org05ad92b" class="outline-2">
+<h2 id="org05ad92b">The fix in place.</h2>
+<div class="outline-text-2" id="text-org05ad92b">
+<p>
+Compare to the original 099<br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+
+<p>
+2C is of no consequence, so it is ignored and allowed to go on being
+set and never checked while E0 is occupied.
+</p>
+
+<p>
+Only three bytes are changed:<br />
+0041B09E = 34 87<br />
+0041B0AA = C6
+</p>
+
+<p>
+Giving us this version of 099:
+</p>
+
+<pre class="example">
+| address  | bytes             | code                        | comments                                    |
+|----------+-------------------+-----------------------------+---------------------------------------------|
+| 0041B099 | 55                | push ebp                    |                                             |
+| 0041B09A | 8B EC             | mov ebp,esp                 |                                             |
+| 0041B09C | 83 3D 34879A00 00 | cmp dword ptr [009A8734],00 | is 34 (repeat is active flag) equal to 0    |
+| 0041B0A3 | 75 0E             | jne 0041B0B3                | jump if not, to 0041B0B3                    |
+| 0041B0A5 | 8B 45 08          | mov eax,[ebp+08]            | "load key to be checked" from stack         |
+| 0041B0A8 | 50                | push eax                    | push it into the top of the stack           |
+| 0041B0A9 | E8 C6FAFFFF       | call 0041AB74               | call "check if in keys this frame" function |
+| 0041B0AE | 83 C4 04          | add esp,04                  | shifts stack pointer (ignore)               |
+| 0041B0B1 | EB 19             | jmp 0041B0CC                | jmp to 0041B0CC                             |
+|----------+-------------------+-----------------------------+---------------------------------------------|
+| 0041B0B3 | 8B 4D 08          | mov ecx,[ebp+08]            | "load key to be checked" from stack         |
+| 0041B0B6 | 51                | push ecx                    | push it into the top of the stack           |
+| 0041B0B7 | E8 ABFAFFFF       | call 0041AB67               | call "check if in all keys" function        |
+| 0041B0BC | 83 C4 04          | add esp,04                  | shifts stack pointer (ignore)               |
+| 0041B0BF | 85 C0             | test eax,eax                | AND's the eax register                      |
+| 0041B0C1 | 74 07             | je 0041B0CA                 | jumps if eax was 0, to 0041B0CA             |
+| 0041B0C3 | A1 2C879A00       | mov eax,[009A872C]          | puts the "process keys" flag in eax         |
+| 0041B0C8 | EB 02             | jmp 0041B0CC                | jmp to 0041B0CC                             |
+|----------+-------------------+-----------------------------+---------------------------------------------|
+| 0041B0CA | 33 C0             | xor eax,eax                 | sets eax to 0 .... yea that makes sense \s  |
+|----------+-------------------+-----------------------------+---------------------------------------------|
+| 0041B0CC | 5D                | pop ebp                     |                                             |
+| 0041B0CD | C3                | ret                         | returns to caller                           |
+</pre>
+</div>
+</div>
+
+<div id="outline-container-org2543c4f" class="outline-2">
+<h2 id="org2543c4f">I mentioned an exceptions #2 and never clarified</h2>
+<div class="outline-text-2" id="text-org2543c4f">
+<p>
+Reading over everything I realised I never explained exceptions #2. I
+don't recall if there are other examples but in battles the start
+button cant trigger DI. Also in battles, when the cursor is on a menu
+(not on a character or enemy), Square does not trigger DI.
+</p>
+
+<p>
+This is because they either pause the game and thus prevent the
+processing of inputs, DI or otherwise. Or in the case of square,
+removes the menu, preventing processing of inputs, DI or otherwise.
+</p>
+
+<p>
+Maybe not an extensive list of examples of this type of exception. But
+all I can remember right now. Might work this section into the flow of
+this doc in a version 2.
+</p>
+
+<p>
+Return to:<br />
+<a href="#org4e5f9a8">0041B099 - aka 099 - check for repeatable key function</a>
+</p>
+</div>
+</div>
+
+<div id="outline-container-org64395c9" class="outline-2">
+<h2 id="org64395c9">Detecting Cheaters in speed running</h2>
+<div class="outline-text-2" id="text-org64395c9">
+<p>
+It should be very obvious how to go about detecting cheaters if
+concerned. Enforce input overlays, and if a vod is suspected to have
+the fix applied, watch for DI where there should be DI. Rip vods,
+watch in slow motion. It is very detectable as long as the run
+benefited from the fix and even when it doesn't, its just a case of
+spotting it. And if it was used but the run did not benefit from it,
+it honestly doesn't matter now does it.
+</p>
+
+<p>
+Hiding the use of di-fix will require such meticulous razor thin edits
+in parts of the vods where menuing is taking place to hide visual and
+audio ques of inputs that it honestly would be simpler to just splice
+in a whole menuing segment perfectly executed and changing the HP, MP,
+XP, AP, etc values. Which is its own problem I imagine. From where I'm
+sitting, if someone wanted to cheat and hide it, there are paths of
+less resistance with better benefits than using the di-fix.
+</p>
+
+<p>
+These two clips (thank you zeg), while not a benefit per se because
+they are of a technique that relies on double input but causes delays
+ordinarily. Once the input overlay is understood its clear that a
+doubled circle would have occurred when the arrow is pressed.
+</p>
+
+<p>
+When pressing left to cursor over 'Change':
+</p>
+<video width="400" controls loop>
+  <source src="change.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+<p>
+Before the first command is fully confirmed:
+</p>
+
+<video width="400" controls loop>
+  <source src="grenade.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
+<p>
+So di-fix during an active repeat feature is very noticeable and
+probably undesirable in the case of this technique.
+</p>
+
+<p>
+I can expand this section later if people ask. But I expect that those
+that read through this doc and have a vested interest in keeping
+cheaters out of the speed running community, already have tools and
+methods for analysis that they are familiar with. Leveraging those
+methods to detect DI fix where no DI fix is allowed should be trivial
+to them.
+</p>
+
+<p>
+But I am always available for questions in case I failed to fully paint
+the picture in a way such methods require.
+</p>
+</div>
+</div>
+</div>
+<div id="postamble" class="status">
+<p class="date">Date: 2024-07-01 Mon 20:04</p>
+<p class="date">Created: 2024-07-03 Wed 20:45</p>
+<p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>
