@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2024-07-03 Wed 21:22 -->
+<!-- 2024-07-03 Wed 23:05 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>FF7 PC Input Repeat Feature, and the DI bug fix</title>
@@ -25,61 +25,61 @@
 <h2>Table of Contents</h2>
 <div id="text-table-of-contents" role="doc-toc">
 <ul>
-<li><a href="#org7f29ff9">Intro</a></li>
-<li><a href="#org7ad9d47">Back links</a></li>
-<li><a href="#org58a3bbf">Inputs, and their values</a></li>
-<li><a href="#org7d0c216">Definitions and Names</a></li>
-<li><a href="#org6fa031e">Important Addresses</a>
+<li><a href="#org92670d5">Intro</a></li>
+<li><a href="#org64a451d">Back links</a></li>
+<li><a href="#orgafbf549">Inputs, and their values</a></li>
+<li><a href="#orgca7ef15">Definitions and Names</a></li>
+<li><a href="#orgd8b7d53">Important Addresses</a>
 <ul>
-<li><a href="#org5e8a6e9">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a></li>
-<li><a href="#orge1f2923">009A85D4 - aka D4 - All held inputs/keys</a></li>
-<li><a href="#org616fe10">009A85C8 - aka C8 - Input Repeat Delay</a></li>
-<li><a href="#org5835544">009A85E4 - aka E4 - Input repeat rate</a></li>
-<li><a href="#org77fceef">009A8714 - aka 14 - Current input repeat wait</a></li>
-<li><a href="#orga5729bf">009A8730 - aka 30 - Timer</a></li>
-<li><a href="#org55d9907">009A872C - aka 2C - Repeat gate/flag</a></li>
-<li><a href="#orgce05861">009A8734 - aka 34 - Repeat is active flag</a></li>
+<li><a href="#org76cc03d">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a></li>
+<li><a href="#org46e58a3">009A85D4 - aka D4 - All held inputs/keys</a></li>
+<li><a href="#org3fd5001">009A85C8 - aka C8 - Input Repeat Delay</a></li>
+<li><a href="#org2ab720a">009A85E4 - aka E4 - Input repeat rate</a></li>
+<li><a href="#orgd6c81ac">009A8714 - aka 14 - Current input repeat wait</a></li>
+<li><a href="#org6cf003f">009A8730 - aka 30 - Timer</a></li>
+<li><a href="#orgb834d74">009A872C - aka 2C - Repeat gate/flag</a></li>
+<li><a href="#org0b885a3">009A8734 - aka 34 - Repeat is active flag</a></li>
 </ul>
 </li>
-<li><a href="#org8b6d7f3">Functions</a>
+<li><a href="#orga5f5f97">Functions</a>
 <ul>
-<li><a href="#org50827db">0041B108 - aka 108 - input timer and flag setting function</a></li>
-<li><a href="#org11a3426">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a></li>
-<li><a href="#org948f013">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a></li>
-<li><a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a></li>
+<li><a href="#orgc73b4a9">0041B108 - aka 108 - input timer and flag setting function</a></li>
+<li><a href="#orgdf666bb">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a></li>
+<li><a href="#org5b53161">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a></li>
+<li><a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a></li>
 </ul>
 </li>
-<li><a href="#orgffdbf0b">wrapper functions for 'check for repeatable key' (099)</a>
+<li><a href="#org937ecaa">wrapper functions for 'check for repeatable key' (099)</a>
 <ul>
-<li><a href="#org12db962">006F53F1 - aka 3F1 - simple wrapper</a></li>
-<li><a href="#org355eb22">006F53B2 - aka 3B2 - used for UDLR</a></li>
-<li><a href="#org9d67ebb">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a></li>
-<li><a href="#orgc309661">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a></li>
-<li><a href="#org1ced99c">007212FB - aka 2FB - first menu main(-ish)</a>
+<li><a href="#org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</a></li>
+<li><a href="#org6d73f34">006F53B2 - aka 3B2 - used for UDLR</a></li>
+<li><a href="#org9ee5ab0">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a></li>
+<li><a href="#org7ded8dc">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a></li>
+<li><a href="#org992c7bf">007212FB - aka 2FB - first menu main(-ish)</a>
 <ul>
-<li><a href="#org10373f1">What we can surmise</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li><a href="#org50af333">Brass tacks</a></li>
-<li><a href="#orgee1ca49">The unreachable condition (condition 1 of 099)</a>
-<ul>
-<li><a href="#org72ee321">Why we don't get there</a></li>
-<li><a href="#org8e29838">the zeroing function</a></li>
-<li><a href="#org3bb329b">all instructions that reference E4 explicitly</a></li>
-<li><a href="#org9775d37">Whats in there, and why the fix works.</a>
-<ul>
-<li><a href="#org4b6765a">2C - repeat gate</a></li>
-<li><a href="#org38cc93a">cmp dword ptr [009A85E4],00 - Condition 1's unyielding gatekeeper</a></li>
-<li><a href="#orgac4f064">Now lets look at condition 1.</a></li>
+<li><a href="#orge111aa5">What we can surmise</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a href="#orge5fab44">The fix in place.</a></li>
-<li><a href="#org1319c95">I mentioned an exceptions #2 and never clarified</a></li>
-<li><a href="#org3f143c2">Detecting Cheaters in speed running</a></li>
+<li><a href="#org1d14987">Brass tacks</a></li>
+<li><a href="#orge23daf4">The unreachable condition (condition 1 of 099)</a>
+<ul>
+<li><a href="#orgcc25de2">Why we don't get there</a></li>
+<li><a href="#org34ef915">the zeroing function</a></li>
+<li><a href="#org4e98c53">all instructions that reference E4 explicitly</a></li>
+<li><a href="#org534930c">Whats in there, and why the fix works.</a>
+<ul>
+<li><a href="#org334fab4">2C - repeat gate</a></li>
+<li><a href="#orgd1bfd5c">cmp dword ptr [009A85E4],00 - Condition 1's unyielding gatekeeper</a></li>
+<li><a href="#org60e7119">Now lets look at condition 1.</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#org8be63dd">The fix in place.</a></li>
+<li><a href="#orgadcd05b">I mentioned an exceptions #2 and never clarified</a></li>
+<li><a href="#orgea484ca">Detecting Cheaters in speed running</a></li>
 </ul>
 </div>
 </div>
@@ -116,9 +116,9 @@ problem more than a programmer problem. It did not take much to
 fix/finish input repeat)
 </p>
 
-<div id="outline-container-org7f29ff9" class="outline-2">
-<h2 id="org7f29ff9">Intro</h2>
-<div class="outline-text-2" id="text-org7f29ff9">
+<div id="outline-container-org92670d5" class="outline-2">
+<h2 id="org92670d5">Intro</h2>
+<div class="outline-text-2" id="text-org92670d5">
 <p>
 The bugfix can be found here:<br />
 <a href="https://github.com/potus-barret/ff7-pc-di-fix/releases/latest/">https://github.com/potus-barret/ff7-pc-di-fix/releases/latest/</a>
@@ -180,9 +180,9 @@ with that code dont end there.
 </div>
 </div>
 
-<div id="outline-container-org7ad9d47" class="outline-2">
-<h2 id="org7ad9d47">Back links</h2>
-<div class="outline-text-2" id="text-org7ad9d47">
+<div id="outline-container-org64a451d" class="outline-2">
+<h2 id="org64a451d">Back links</h2>
+<div class="outline-text-2" id="text-org64a451d">
 <p>
 Throughout this tangled mess of red string on a wall you will find a
 collection of reference and/or back links at the top/bottom of some
@@ -209,12 +209,13 @@ return.
 </div>
 </div>
 
-<div id="outline-container-org58a3bbf" class="outline-2">
-<h2 id="org58a3bbf">Inputs, and their values</h2>
-<div class="outline-text-2" id="text-org58a3bbf">
+<div id="outline-container-orgafbf549" class="outline-2">
+<h2 id="orgafbf549">Inputs, and their values</h2>
+<div class="outline-text-2" id="text-orgafbf549">
 <p>
 Here we have the hex, binary and decimal representations of the games
-values for buttons in the VARS variables and repeatable keys lists.
+values for buttons in the 'all held keys' and 'keys this frame'
+variables, single inputs lists and repeatable inputs lists.
 </p>
 
 <p>
@@ -310,9 +311,9 @@ Or a simple Circle + Down
 </div>
 </div>
 
-<div id="outline-container-org7d0c216" class="outline-2">
-<h2 id="org7d0c216">Definitions and Names</h2>
-<div class="outline-text-2" id="text-org7d0c216">
+<div id="outline-container-orgca7ef15" class="outline-2">
+<h2 id="orgca7ef15">Definitions and Names</h2>
+<div class="outline-text-2" id="text-orgca7ef15">
 <p>
 I am going to lay out terms I have used or come up with while trying
 to explain FF7's Input Repeat Feature and the Double Input glitch.
@@ -374,51 +375,51 @@ are pressed in quick succession, giving the user the experience of a
 </div>
 </div>
 
-<div id="outline-container-org6fa031e" class="outline-2">
-<h2 id="org6fa031e">Important Addresses</h2>
-<div class="outline-text-2" id="text-org6fa031e">
+<div id="outline-container-orgd8b7d53" class="outline-2">
+<h2 id="orgd8b7d53">Important Addresses</h2>
+<div class="outline-text-2" id="text-orgd8b7d53">
 </div>
-<div id="outline-container-org5e8a6e9" class="outline-3">
-<h3 id="org5e8a6e9">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</h3>
-<div class="outline-text-3" id="text-org5e8a6e9">
+<div id="outline-container-org76cc03d" class="outline-3">
+<h3 id="org76cc03d">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</h3>
+<div class="outline-text-3" id="text-org76cc03d">
 <p>
 An address that holds recent keys, keys pressed this frame.
 </p>
 
 <p>
 Back Links:<br />
-<a href="#org50827db">0041B108 - aka 108 - input timer and flag setting function</a><br />
-<a href="#org9775d37">Whats in there, and why the fix works.</a><br />
-<a href="#org50af333">Brass tacks</a><br />
-<a href="#org1ced99c">007212FB - aka 2FB - first menu main(-ish)</a><br />
-<a href="#org948f013">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a>
+<a href="#orgc73b4a9">0041B108 - aka 108 - input timer and flag setting function</a><br />
+<a href="#org534930c">Whats in there, and why the fix works.</a><br />
+<a href="#org1d14987">Brass tacks</a><br />
+<a href="#org992c7bf">007212FB - aka 2FB - first menu main(-ish)</a><br />
+<a href="#org5b53161">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-orge1f2923" class="outline-3">
-<h3 id="orge1f2923">009A85D4 - aka D4 - All held inputs/keys</h3>
-<div class="outline-text-3" id="text-orge1f2923">
+<div id="outline-container-org46e58a3" class="outline-3">
+<h3 id="org46e58a3">009A85D4 - aka D4 - All held inputs/keys</h3>
+<div class="outline-text-3" id="text-org46e58a3">
 <p>
 An address that holds all currently held keys.
 </p>
 
 <p>
 Back Links:<br />
-<a href="#org50827db">0041B108 - aka 108 - input timer and flag setting function</a><br />
-<a href="#org9775d37">Whats in there, and why the fix works.</a><br />
-<a href="#org50af333">Brass tacks</a><br />
-<a href="#org355eb22">006F53B2 - aka 3B2 - used for UDLR</a><br />
-<a href="#org12db962">006F53F1 - aka 3F1 - simple wrapper</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a><br />
-<a href="#org11a3426">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a>
+<a href="#orgc73b4a9">0041B108 - aka 108 - input timer and flag setting function</a><br />
+<a href="#org534930c">Whats in there, and why the fix works.</a><br />
+<a href="#org1d14987">Brass tacks</a><br />
+<a href="#org6d73f34">006F53B2 - aka 3B2 - used for UDLR</a><br />
+<a href="#org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a><br />
+<a href="#orgdf666bb">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org616fe10" class="outline-3">
-<h3 id="org616fe10">009A85C8 - aka C8 - Input Repeat Delay</h3>
-<div class="outline-text-3" id="text-org616fe10">
+<div id="outline-container-org3fd5001" class="outline-3">
+<h3 id="org3fd5001">009A85C8 - aka C8 - Input Repeat Delay</h3>
+<div class="outline-text-3" id="text-org3fd5001">
 <p>
 An address that holds the input repeat delay value. 200. The time in
 ms until repeat/auto-fire begins.
@@ -426,30 +427,30 @@ ms until repeat/auto-fire begins.
 
 <p>
 Back Links:<br />
-<a href="#org72ee321">Why we don't get there</a>
+<a href="#orgcc25de2">Why we don't get there</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org5835544" class="outline-3">
-<h3 id="org5835544">009A85E4 - aka E4 - Input repeat rate</h3>
-<div class="outline-text-3" id="text-org5835544">
+<div id="outline-container-org2ab720a" class="outline-3">
+<h3 id="org2ab720a">009A85E4 - aka E4 - Input repeat rate</h3>
+<div class="outline-text-3" id="text-org2ab720a">
 <p>
 An address that holds the input repeat rate value. 50. The time in
-ms ticks/fires/executions of repeat/auto-fire.
+ms between ticks/fires/executions of repeat/auto-fire.
 </p>
 
 <p>
 Back Links:<br />
-<a href="#org72ee321">Why we don't get there</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#orgcc25de2">Why we don't get there</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org77fceef" class="outline-3">
-<h3 id="org77fceef">009A8714 - aka 14 - Current input repeat wait</h3>
-<div class="outline-text-3" id="text-org77fceef">
+<div id="outline-container-orgd6c81ac" class="outline-3">
+<h3 id="orgd6c81ac">009A8714 - aka 14 - Current input repeat wait</h3>
+<div class="outline-text-3" id="text-orgd6c81ac">
 <p>
 An address that holds the 'current wait' in ms for repeat. It holds
 either 200 or 50 depending on if a button was recently pressed or is
@@ -459,15 +460,15 @@ input repeat rate is put here depending on those circumstances.
 
 <p>
 Back Links:<br />
-<a href="#org50af333">Brass tacks</a><br />
-<a href="#org50827db">0041B108 - aka 108 - input timer and flag setting function</a>
+<a href="#org1d14987">Brass tacks</a><br />
+<a href="#orgc73b4a9">0041B108 - aka 108 - input timer and flag setting function</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-orga5729bf" class="outline-3">
-<h3 id="orga5729bf">009A8730 - aka 30 - Timer</h3>
-<div class="outline-text-3" id="text-orga5729bf">
+<div id="outline-container-org6cf003f" class="outline-3">
+<h3 id="org6cf003f">009A8730 - aka 30 - Timer</h3>
+<div class="outline-text-3" id="text-org6cf003f">
 <p>
 Keeps track of time passed since inputs were processed, either by
 press or a tick of repeat.
@@ -493,14 +494,14 @@ OR the following is all true:
 
 <p>
 Back Links:<br />
-<a href="#org50827db">0041B108 - aka 108 - input timer and flag setting function</a>
+<a href="#orgc73b4a9">0041B108 - aka 108 - input timer and flag setting function</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org55d9907" class="outline-3">
-<h3 id="org55d9907">009A872C - aka 2C - Repeat gate/flag</h3>
-<div class="outline-text-3" id="text-org55d9907">
+<div id="outline-container-orgb834d74" class="outline-3">
+<h3 id="orgb834d74">009A872C - aka 2C - Repeat gate/flag</h3>
+<div class="outline-text-3" id="text-orgb834d74">
 <p>
 An address that gets set to either 1 or 0. It gets set to 1 when the
 following is true:
@@ -536,17 +537,17 @@ More on this later.
 
 <p>
 Back Links:<br />
-<a href="#org50827db">0041B108 - aka 108 - input timer and flag setting function</a><br />
-<a href="#org9775d37">Whats in there, and why the fix works.</a><br />
-<a href="#org50af333">Brass tacks</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#orgc73b4a9">0041B108 - aka 108 - input timer and flag setting function</a><br />
+<a href="#org534930c">Whats in there, and why the fix works.</a><br />
+<a href="#org1d14987">Brass tacks</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgce05861" class="outline-3">
-<h3 id="orgce05861">009A8734 - aka 34 - Repeat is active flag</h3>
-<div class="outline-text-3" id="text-orgce05861">
+<div id="outline-container-org0b885a3" class="outline-3">
+<h3 id="org0b885a3">009A8734 - aka 34 - Repeat is active flag</h3>
+<div class="outline-text-3" id="text-org0b885a3">
 <p>
 A flag that is set to 0 when:
 </p>
@@ -584,17 +585,17 @@ keys pressed this frame should be processed.
 
 <p>
 Back Links:<br />
-<a href="#org50827db">0041B108 - aka 108 - input timer and flag setting function</a><br />
-<a href="#org9775d37">Whats in there, and why the fix works.</a><br />
-<a href="#org50af333">Brass tacks</a>
+<a href="#orgc73b4a9">0041B108 - aka 108 - input timer and flag setting function</a><br />
+<a href="#org534930c">Whats in there, and why the fix works.</a><br />
+<a href="#org1d14987">Brass tacks</a>
 </p>
 </div>
 </div>
 </div>
 
-<div id="outline-container-org8b6d7f3" class="outline-2">
-<h2 id="org8b6d7f3">Functions</h2>
-<div class="outline-text-2" id="text-org8b6d7f3">
+<div id="outline-container-orga5f5f97" class="outline-2">
+<h2 id="orga5f5f97">Functions</h2>
+<div class="outline-text-2" id="text-orga5f5f97">
 <p>
 In some cases showing the code is either unnecessary or stupid. Both
 cases just waste space, but the stupid one involves a few thousand
@@ -607,9 +608,9 @@ directly above jump destinations.</b>
 </p>
 </div>
 
-<div id="outline-container-org50827db" class="outline-3">
-<h3 id="org50827db">0041B108 - aka 108 - input timer and flag setting function</h3>
-<div class="outline-text-3" id="text-org50827db">
+<div id="outline-container-orgc73b4a9" class="outline-3">
+<h3 id="orgc73b4a9">0041B108 - aka 108 - input timer and flag setting function</h3>
+<div class="outline-text-3" id="text-orgc73b4a9">
 <p>
 This is the beating heart of menu inputs.
 </p>
@@ -625,12 +626,12 @@ follow. Use the 'back links' to return here. Remember 'aka 108'.
 </p>
 
 <p>
-<a href="#org77fceef">009A8714 - aka 14 - Current input repeat wait</a><br />
-<a href="#orga5729bf">009A8730 - aka 30 - Timer</a><br />
-<a href="#org55d9907">009A872C - aka 2C - Repeat gate/flag</a><br />
-<a href="#orgce05861">009A8734 - aka 34 - Repeat is active flag</a><br />
-<a href="#org5e8a6e9">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
-<a href="#orge1f2923">009A85D4 - aka D4 - All held inputs/keys</a>
+<a href="#orgd6c81ac">009A8714 - aka 14 - Current input repeat wait</a><br />
+<a href="#org6cf003f">009A8730 - aka 30 - Timer</a><br />
+<a href="#orgb834d74">009A872C - aka 2C - Repeat gate/flag</a><br />
+<a href="#org0b885a3">009A8734 - aka 34 - Repeat is active flag</a><br />
+<a href="#org76cc03d">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
+<a href="#org46e58a3">009A85D4 - aka D4 - All held inputs/keys</a>
 </p>
 
 <pre class="example">
@@ -665,12 +666,12 @@ follow. Use the 'back links' to return here. Remember 'aka 108'.
 </div>
 </div>
 
-<div id="outline-container-org11a3426" class="outline-3">
-<h3 id="org11a3426">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</h3>
-<div class="outline-text-3" id="text-org11a3426">
+<div id="outline-container-orgdf666bb" class="outline-3">
+<h3 id="orgdf666bb">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</h3>
+<div class="outline-text-3" id="text-orgdf666bb">
 <p>
 Reference Links:<br />
-<a href="#orge1f2923">009A85D4 - aka D4 - All held inputs/keys</a>
+<a href="#org46e58a3">009A85D4 - aka D4 - All held inputs/keys</a>
 </p>
 
 <p>
@@ -697,18 +698,18 @@ the stack matches a bit in D4.
 
 <p>
 Back Links:<br />
-<a href="#org9775d37">Whats in there, and why the fix works.</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#org534930c">Whats in there, and why the fix works.</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org948f013" class="outline-3">
-<h3 id="org948f013">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</h3>
-<div class="outline-text-3" id="text-org948f013">
+<div id="outline-container-org5b53161" class="outline-3">
+<h3 id="org5b53161">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</h3>
+<div class="outline-text-3" id="text-org5b53161">
 <p>
 Reference Links:<br />
-<a href="#org5e8a6e9">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a>
+<a href="#org76cc03d">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a>
 </p>
 
 <p>
@@ -717,22 +718,22 @@ Exact same as the above function (B67) only it checks E0 (keys this frame).
 
 <p>
 Back Links:<br />
-<a href="#org9775d37">Whats in there, and why the fix works.</a><br />
-<a href="#org50af333">Brass tacks</a><br />
-<a href="#org1ced99c">007212FB - aka 2FB - first menu main(-ish)</a>
+<a href="#org534930c">Whats in there, and why the fix works.</a><br />
+<a href="#org1d14987">Brass tacks</a><br />
+<a href="#org992c7bf">007212FB - aka 2FB - first menu main(-ish)</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgbe53dc6" class="outline-3">
-<h3 id="orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</h3>
-<div class="outline-text-3" id="text-orgbe53dc6">
+<div id="outline-container-org50bd8c8" class="outline-3">
+<h3 id="org50bd8c8">0041B099 - aka 099 - check for repeatable key function</h3>
+<div class="outline-text-3" id="text-org50bd8c8">
 <p>
 Reference links:<br />
-<a href="#org55d9907">009A872C - aka 2C - Repeat gate/flag</a><br />
-<a href="#orge1f2923">009A85D4 - aka D4 - All held inputs/keys</a><br />
-<a href="#org5835544">009A85E4 - aka E4 - Input repeat rate</a><br />
-<a href="#org11a3426">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a>
+<a href="#orgb834d74">009A872C - aka 2C - Repeat gate/flag</a><br />
+<a href="#org46e58a3">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#org2ab720a">009A85E4 - aka E4 - Input repeat rate</a><br />
+<a href="#orgdf666bb">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a>
 </p>
 
 <p>
@@ -768,7 +769,7 @@ function.
 
 <p>
 Whats more is the press of any button (with exceptions based on
-context - <a href="#org1319c95">#2</a>) causes an already held key to get played in game, even
+context - <a href="#orgadcd05b">#2</a>) causes an already held key to get played in game, even
 if that pressed key has no effect on that menu and no code to handle
 or acknowledge it in that menu.
 </p>
@@ -837,19 +838,19 @@ From 0041B0B3 to 0041B0CA will be referred to as 'Condition 2'.
 
 <p>
 Back Links:<br />
-<a href="#org9775d37">Whats in there, and why the fix works.</a><br />
-<a href="#org50af333">Brass tacks</a><br />
-<a href="#org9d67ebb">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a><br />
-<a href="#org355eb22">006F53B2 - aka 3B2 - used for UDLR</a><br />
-<a href="#org12db962">006F53F1 - aka 3F1 - simple wrapper</a>
+<a href="#org534930c">Whats in there, and why the fix works.</a><br />
+<a href="#org1d14987">Brass tacks</a><br />
+<a href="#org9ee5ab0">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a><br />
+<a href="#org6d73f34">006F53B2 - aka 3B2 - used for UDLR</a><br />
+<a href="#org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</a>
 </p>
 </div>
 </div>
 </div>
 
-<div id="outline-container-orgffdbf0b" class="outline-2">
-<h2 id="orgffdbf0b">wrapper functions for 'check for repeatable key' (099)</h2>
-<div class="outline-text-2" id="text-orgffdbf0b">
+<div id="outline-container-org937ecaa" class="outline-2">
+<h2 id="org937ecaa">wrapper functions for 'check for repeatable key' (099)</h2>
+<div class="outline-text-2" id="text-org937ecaa">
 <p>
 Input repeat wrapper functions ultimately call 099 or a simpler
 wrapper function that in turn calls 099. They either take a key value
@@ -861,13 +862,13 @@ UDLR = up, down, left, right
 </p>
 </div>
 
-<div id="outline-container-org12db962" class="outline-3">
-<h3 id="org12db962">006F53F1 - aka 3F1 - simple wrapper</h3>
-<div class="outline-text-3" id="text-org12db962">
+<div id="outline-container-org4d0fb84" class="outline-3">
+<h3 id="org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</h3>
+<div class="outline-text-3" id="text-org4d0fb84">
 <p>
 Reference Links:<br />
-<a href="#orge1f2923">009A85D4 - aka D4 - All held inputs/keys</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#org46e58a3">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 
 <p>
@@ -905,22 +906,22 @@ eax.
 
 <p>
 Back Links:<br />
-<a href="#org9775d37">Whats in there, and why the fix works.</a><br />
-<a href="#org50af333">Brass tacks</a><br />
-<a href="#org1ced99c">007212FB - aka 2FB - first menu main(-ish)</a><br />
-<a href="#orgc309661">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a><br />
-<a href="#org9d67ebb">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a>
+<a href="#org534930c">Whats in there, and why the fix works.</a><br />
+<a href="#org1d14987">Brass tacks</a><br />
+<a href="#org992c7bf">007212FB - aka 2FB - first menu main(-ish)</a><br />
+<a href="#org7ded8dc">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a><br />
+<a href="#org9ee5ab0">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org355eb22" class="outline-3">
-<h3 id="org355eb22">006F53B2 - aka 3B2 - used for UDLR</h3>
-<div class="outline-text-3" id="text-org355eb22">
+<div id="outline-container-org6d73f34" class="outline-3">
+<h3 id="org6d73f34">006F53B2 - aka 3B2 - used for UDLR</h3>
+<div class="outline-text-3" id="text-org6d73f34">
 <p>
 Reference Links:<br />
-<a href="#orge1f2923">009A85D4 - aka D4 - All held inputs/keys</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#org46e58a3">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 
 <p>
@@ -996,20 +997,20 @@ overridden. Keys we do find will always result in eax returning a non
 
 <p>
 Back Links:<br />
-<a href="#org50af333">Brass tacks</a><br />
-<a href="#org9d67ebb">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a>
+<a href="#org1d14987">Brass tacks</a><br />
+<a href="#org9ee5ab0">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org9d67ebb" class="outline-3">
-<h3 id="org9d67ebb">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</h3>
-<div class="outline-text-3" id="text-org9d67ebb">
+<div id="outline-container-org9ee5ab0" class="outline-3">
+<h3 id="org9ee5ab0">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</h3>
+<div class="outline-text-3" id="text-org9ee5ab0">
 <p>
 Reference Links:<br />
-<a href="#org12db962">006F53F1 - aka 3F1 - simple wrapper</a><br />
-<a href="#org355eb22">006F53B2 - aka 3B2 - used for UDLR</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org6d73f34">006F53B2 - aka 3B2 - used for UDLR</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 
 <p>
@@ -1121,17 +1122,17 @@ if its non zero.
 
 <p>
 Back Links:<br />
-<a href="#org1ced99c">007212FB - aka 2FB - first menu main(-ish)</a>
+<a href="#org992c7bf">007212FB - aka 2FB - first menu main(-ish)</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-orgc309661" class="outline-3">
-<h3 id="orgc309661">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</h3>
-<div class="outline-text-3" id="text-orgc309661">
+<div id="outline-container-org7ded8dc" class="outline-3">
+<h3 id="org7ded8dc">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</h3>
+<div class="outline-text-3" id="text-org7ded8dc">
 <p>
 Reference links:<br />
-<a href="#org12db962">006F53F1 - aka 3F1 - simple wrapper</a>
+<a href="#org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</a>
 </p>
 
 <p>
@@ -1157,21 +1158,21 @@ order, are:
 
 <p>
 Back Links:<br />
-<a href="#org1ced99c">007212FB - aka 2FB - first menu main(-ish)</a>
+<a href="#org992c7bf">007212FB - aka 2FB - first menu main(-ish)</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org1ced99c" class="outline-3">
-<h3 id="org1ced99c">007212FB - aka 2FB - first menu main(-ish)</h3>
-<div class="outline-text-3" id="text-org1ced99c">
+<div id="outline-container-org992c7bf" class="outline-3">
+<h3 id="org992c7bf">007212FB - aka 2FB - first menu main(-ish)</h3>
+<div class="outline-text-3" id="text-org992c7bf">
 <p>
 Reference links:<br />
-<a href="#org5e8a6e9">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
-<a href="#org948f013">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
-<a href="#org12db962">006F53F1 - aka 3F1 - simple wrapper</a><br />
-<a href="#org9d67ebb">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a><br />
-<a href="#orgc309661">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a>
+<a href="#org76cc03d">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
+<a href="#org5b53161">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
+<a href="#org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org9ee5ab0">006F4DB2 - aka DB2 - wrapper function that finds directions for menus</a><br />
+<a href="#org7ded8dc">007201E2 - aka 1E2 - Save slot selection (Load screen) repeatable keys wrapper</a>
 </p>
 
 <p>
@@ -1272,9 +1273,9 @@ picked.
 </pre>
 </div>
 
-<div id="outline-container-org10373f1" class="outline-4">
-<h4 id="org10373f1">What we can surmise</h4>
-<div class="outline-text-4" id="text-org10373f1">
+<div id="outline-container-orge111aa5" class="outline-4">
+<h4 id="orge111aa5">What we can surmise</h4>
+<div class="outline-text-4" id="text-orge111aa5">
 <p>
 The fact that inputs can be doubled by the press of keys other than
 those in the list for single inputs or repeatable inputs highlight
@@ -1303,20 +1304,20 @@ etc etc
 </div>
 </div>
 
-<div id="outline-container-org50af333" class="outline-2">
-<h2 id="org50af333">Brass tacks</h2>
-<div class="outline-text-2" id="text-org50af333">
+<div id="outline-container-org1d14987" class="outline-2">
+<h2 id="org1d14987">Brass tacks</h2>
+<div class="outline-text-2" id="text-org1d14987">
 <p>
 Reference links:<br />
-<a href="#orgce05861">009A8734 - aka 34 - Repeat is active flag</a><br />
-<a href="#org55d9907">009A872C - aka 2C - Repeat gate/flag</a><br />
-<a href="#org5e8a6e9">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
-<a href="#orge1f2923">009A85D4 - aka D4 - All held inputs/keys</a><br />
-<a href="#org77fceef">009A8714 - aka 14 - Current input repeat wait</a><br />
-<a href="#org948f013">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
-<a href="#org355eb22">006F53B2 - aka 3B2 - used for UDLR</a><br />
-<a href="#org12db962">006F53F1 - aka 3F1 - simple wrapper</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#org0b885a3">009A8734 - aka 34 - Repeat is active flag</a><br />
+<a href="#orgb834d74">009A872C - aka 2C - Repeat gate/flag</a><br />
+<a href="#org76cc03d">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
+<a href="#org46e58a3">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#orgd6c81ac">009A8714 - aka 14 - Current input repeat wait</a><br />
+<a href="#org5b53161">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
+<a href="#org6d73f34">006F53B2 - aka 3B2 - used for UDLR</a><br />
+<a href="#org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 
 <p>
@@ -1417,17 +1418,17 @@ long. Nope, 34 is Keanu Reeves.
 </div>
 </div>
 
-<div id="outline-container-orgee1ca49" class="outline-2">
-<h2 id="orgee1ca49">The unreachable condition (condition 1 of 099)</h2>
-<div class="outline-text-2" id="text-orgee1ca49">
+<div id="outline-container-orge23daf4" class="outline-2">
+<h2 id="orge23daf4">The unreachable condition (condition 1 of 099)</h2>
+<div class="outline-text-2" id="text-orge23daf4">
 </div>
-<div id="outline-container-org72ee321" class="outline-3">
-<h3 id="org72ee321">Why we don't get there</h3>
-<div class="outline-text-3" id="text-org72ee321">
+<div id="outline-container-orgcc25de2" class="outline-3">
+<h3 id="orgcc25de2">Why we don't get there</h3>
+<div class="outline-text-3" id="text-orgcc25de2">
 <p>
 Reference links:<br />
-<a href="#org616fe10">009A85C8 - aka C8 - Input Repeat Delay</a><br />
-<a href="#org5835544">009A85E4 - aka E4 - Input repeat rate</a>
+<a href="#org3fd5001">009A85C8 - aka C8 - Input Repeat Delay</a><br />
+<a href="#org2ab720a">009A85E4 - aka E4 - Input repeat rate</a>
 </p>
 
 <p>
@@ -1532,9 +1533,9 @@ correct about the zeroing function below.
 </div>
 </div>
 
-<div id="outline-container-org8e29838" class="outline-3">
-<h3 id="org8e29838">the zeroing function</h3>
-<div class="outline-text-3" id="text-org8e29838">
+<div id="outline-container-org34ef915" class="outline-3">
+<h3 id="org34ef915">the zeroing function</h3>
+<div class="outline-text-3" id="text-org34ef915">
 <p>
 This function zeros
 </p>
@@ -1581,9 +1582,9 @@ for what that would be like.
 </div>
 </div>
 
-<div id="outline-container-org3bb329b" class="outline-3">
-<h3 id="org3bb329b">all instructions that reference E4 explicitly</h3>
-<div class="outline-text-3" id="text-org3bb329b">
+<div id="outline-container-org4e98c53" class="outline-3">
+<h3 id="org4e98c53">all instructions that reference E4 explicitly</h3>
+<div class="outline-text-3" id="text-org4e98c53">
 <p>
 The search was over entirety of the assembly across all memory
 addresses (00000000 -&gt; FFFFFFFF) for any reference to 009A85E4. This
@@ -1649,19 +1650,19 @@ THE TWO AND ONLY INSTANCES IN THE ASSEMBLY WHERE THERE ARE WRITES TO E4:
 </div>
 </div>
 
-<div id="outline-container-org9775d37" class="outline-3">
-<h3 id="org9775d37">Whats in there, and why the fix works.</h3>
-<div class="outline-text-3" id="text-org9775d37">
+<div id="outline-container-org534930c" class="outline-3">
+<h3 id="org534930c">Whats in there, and why the fix works.</h3>
+<div class="outline-text-3" id="text-org534930c">
 <p>
 Reference links:<br />
-<a href="#orgce05861">009A8734 - aka 34 - Repeat is active flag</a><br />
-<a href="#org55d9907">009A872C - aka 2C - Repeat gate/flag</a><br />
-<a href="#org5e8a6e9">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
-<a href="#orge1f2923">009A85D4 - aka D4 - All held inputs/keys</a><br />
-<a href="#org11a3426">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a><br />
-<a href="#org948f013">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
-<a href="#org12db962">006F53F1 - aka 3F1 - simple wrapper</a><br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a><br />
+<a href="#org0b885a3">009A8734 - aka 34 - Repeat is active flag</a><br />
+<a href="#orgb834d74">009A872C - aka 2C - Repeat gate/flag</a><br />
+<a href="#org76cc03d">009A85E0 - aka E0 - Recent inputs/keys, or keys this frame</a><br />
+<a href="#org46e58a3">009A85D4 - aka D4 - All held inputs/keys</a><br />
+<a href="#orgdf666bb">0041AB67 - aka B67 -"check if key in 'all keys'(D4)" or 'in all keys' function</a><br />
+<a href="#org5b53161">0041AB74 - aka B74 - "check if key in 'recent keys'(E0)" function</a><br />
+<a href="#org4d0fb84">006F53F1 - aka 3F1 - simple wrapper</a><br />
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a><br />
 </p>
 
 <p>
@@ -1748,13 +1749,18 @@ should be played in game.
 <p>
 We know that in this unique place (099) where the repeat features
 timing(2C) is kept in sync with keys getting processed when
-found. There is a condition that does
+found.
+</p>
+
+<p>
+There is a condition that does not get reached that simply calls a
+function to check if the key is pressed and then leaves ignoring 2C.
 </p>
 </div>
 
-<div id="outline-container-org4b6765a" class="outline-4">
-<h4 id="org4b6765a">2C - repeat gate</h4>
-<div class="outline-text-4" id="text-org4b6765a">
+<div id="outline-container-org334fab4" class="outline-4">
+<h4 id="org334fab4">2C - repeat gate</h4>
+<div class="outline-text-4" id="text-org334fab4">
 <p>
 As I've already covered the repeat gate being set while E0 is occupied
 makes little to no sense logically, other than to overcome an
@@ -1785,9 +1791,9 @@ Lets stick a pin in that.
 </div>
 </div>
 
-<div id="outline-container-org38cc93a" class="outline-4">
-<h4 id="org38cc93a">cmp dword ptr [009A85E4],00 - Condition 1's unyielding gatekeeper</h4>
-<div class="outline-text-4" id="text-org38cc93a">
+<div id="outline-container-orgd1bfd5c" class="outline-4">
+<h4 id="orgd1bfd5c">cmp dword ptr [009A85E4],00 - Condition 1's unyielding gatekeeper</h4>
+<div class="outline-text-4" id="text-orgd1bfd5c">
 <p>
 This fella makes no sense, so lets give it a purpose.
 </p>
@@ -1815,9 +1821,9 @@ active. It does not matter while 34 is 0.
 </div>
 </div>
 
-<div id="outline-container-orgac4f064" class="outline-4">
-<h4 id="orgac4f064">Now lets look at condition 1.</h4>
-<div class="outline-text-4" id="text-orgac4f064">
+<div id="outline-container-org60e7119" class="outline-4">
+<h4 id="org60e7119">Now lets look at condition 1.</h4>
+<div class="outline-text-4" id="text-org60e7119">
 <p>
 Its effectively 3F1. A simple call to B67 (check if in 'all
 keys'(D4)), receives result, and pass it up the chain. 2C does not
@@ -1844,12 +1850,12 @@ are not undesirable effects. The DI fix.
 </div>
 </div>
 
-<div id="outline-container-orge5fab44" class="outline-2">
-<h2 id="orge5fab44">The fix in place.</h2>
-<div class="outline-text-2" id="text-orge5fab44">
+<div id="outline-container-org8be63dd" class="outline-2">
+<h2 id="org8be63dd">The fix in place.</h2>
+<div class="outline-text-2" id="text-org8be63dd">
 <p>
 Compare to the original 099<br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 
 <p>
@@ -1897,9 +1903,9 @@ Giving us this version of 099:
 </div>
 </div>
 
-<div id="outline-container-org1319c95" class="outline-2">
-<h2 id="org1319c95">I mentioned an exceptions #2 and never clarified</h2>
-<div class="outline-text-2" id="text-org1319c95">
+<div id="outline-container-orgadcd05b" class="outline-2">
+<h2 id="orgadcd05b">I mentioned an exceptions #2 and never clarified</h2>
+<div class="outline-text-2" id="text-orgadcd05b">
 <p>
 Reading over everything I realised I never explained exceptions #2. I
 don't recall if there are other examples but in battles the start
@@ -1921,14 +1927,14 @@ this doc in a version 2.
 
 <p>
 Return to:<br />
-<a href="#orgbe53dc6">0041B099 - aka 099 - check for repeatable key function</a>
+<a href="#org50bd8c8">0041B099 - aka 099 - check for repeatable key function</a>
 </p>
 </div>
 </div>
 
-<div id="outline-container-org3f143c2" class="outline-2">
-<h2 id="org3f143c2">Detecting Cheaters in speed running</h2>
-<div class="outline-text-2" id="text-org3f143c2">
+<div id="outline-container-orgea484ca" class="outline-2">
+<h2 id="orgea484ca">Detecting Cheaters in speed running</h2>
+<div class="outline-text-2" id="text-orgea484ca">
 <p>
 It should be very obvious how to go about detecting cheaters if
 concerned. Enforce input overlays, and if a vod is suspected to have
@@ -1995,7 +2001,7 @@ the picture in a way such methods require.
 </div>
 <div id="postamble" class="status">
 <p class="date">Date: 2024-07-01 Mon 20:04</p>
-<p class="date">Created: 2024-07-03 Wed 21:22</p>
+<p class="date">Created: 2024-07-03 Wed 23:05</p>
 <p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>
