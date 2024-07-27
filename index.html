@@ -3,7 +3,7 @@
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
 <head>
-<!-- 2024-07-28 Sun 00:06 -->
+<!-- 2024-07-28 Sun 00:25 -->
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>FF7 PC Input Repeat Feature, and the DI bug fix</title>
@@ -77,8 +77,8 @@
 <li><a href="#The%20unreachable%20condition%20%28condition%201%20of%20099%29">The unreachable condition (condition 1 of 099)</a>
 <ul>
 <li><a href="#Why%20we%20don%27t%20get%20there">Why we don't get there</a></li>
-<li><a href="#the%20zeroing%20function">the zeroing function</a></li>
-<li><a href="#all%20instructions%20that%20reference%20E4%20explicitly">all instructions that reference E4 explicitly</a></li>
+<li><a href="#The%20zeroing%20function">The zeroing function</a></li>
+<li><a href="#All%20instructions%20that%20reference%20E4%20explicitly">All instructions that reference E4 explicitly</a></li>
 <li><a href="#Whats%20in%20there%2C%20and%20why%20the%20fix%20works.">Whats in there, and why the fix works.</a>
 <ul>
 <li><a href="#2C%20-%20repeat%20gate">2C - repeat gate</a></li>
@@ -1656,13 +1656,6 @@ E0 thanks to the skipped unnecessary test and dumb extra xor. Which
 is likely 34's purpose. Guiding to a condition where unnecessary
 code does not take place. There is no point in checking for the next
 tick of repeat while delay is in 'current wait'.
-</p>
-
-<p>
-It could be argued that checking if current wait is 200 could then
-be a solution. And while the logic is sound, it wouldn't fit. The
-instruction would be 10 bytes long in a space that's only 7 bytes
-long. Nope, 34 is Keanu Reeves.
 </p></li>
 </ul>
 </div>
@@ -1785,9 +1778,9 @@ correct about the zeroing function below.
 </div>
 </div>
 
-<div id="outline-container-the%20zeroing%20function" class="outline-3">
-<h3 id="the%20zeroing%20function">the zeroing function</h3>
-<div class="outline-text-3" id="text-the%20zeroing%20function">
+<div id="outline-container-The%20zeroing%20function" class="outline-3">
+<h3 id="The%20zeroing%20function">The zeroing function</h3>
+<div class="outline-text-3" id="text-The%20zeroing%20function">
 <p>
 This function zeros
 </p>
@@ -1834,9 +1827,9 @@ for what that would be like.
 </div>
 </div>
 
-<div id="outline-container-all%20instructions%20that%20reference%20E4%20explicitly" class="outline-3">
-<h3 id="all%20instructions%20that%20reference%20E4%20explicitly">all instructions that reference E4 explicitly</h3>
-<div class="outline-text-3" id="text-all%20instructions%20that%20reference%20E4%20explicitly">
+<div id="outline-container-All%20instructions%20that%20reference%20E4%20explicitly" class="outline-3">
+<h3 id="All%20instructions%20that%20reference%20E4%20explicitly">All instructions that reference E4 explicitly</h3>
+<div class="outline-text-3" id="text-All%20instructions%20that%20reference%20E4%20explicitly">
 <p>
 The search was over entirety of the assembly across all memory
 addresses (00000000 -&gt; FFFFFFFF) for any reference to 009A85E4. This
@@ -2195,12 +2188,12 @@ Return to:<br />
 <div class="outline-text-2" id="text-Detecting%20Cheaters%20in%20speed%20running">
 <p>
 It should be very obvious how to go about detecting cheaters if
-concerned. Enforce input overlays, and if a vod is suspected to have
-the fix applied, watch for DI where there should be DI. Rip vods,
-watch in slow motion. It is very detectable as long as the run
-benefited from the fix and even when it doesn't, its just a case of
-spotting it. And if it was used but the run did not benefit from it,
-it honestly doesn't matter now does it.
+concerned. Enforce input overlays and/or controller cams, and if a vod
+is suspected to have the fix applied, watch for DI where there should
+be DI. Rip vods, watch in slow motion. It is very detectable as long
+as the run benefited from the fix and even when it doesn't, its just a
+case of spotting it. And if it was used but the run did not benefit
+from it, it honestly doesn't matter now does it.
 </p>
 
 <p>
@@ -2259,7 +2252,7 @@ the picture in a way such methods require.
 </div>
 <div id="postamble" class="status">
 <p class="date">Date: 2024-07-01 Mon 20:04</p>
-<p class="date">Created: 2024-07-28 Sun 00:06</p>
+<p class="date">Created: 2024-07-28 Sun 00:25</p>
 <p class="validation"><a href="https://validator.w3.org/check?uri=referer">Validate</a></p>
 </div>
 </body>
